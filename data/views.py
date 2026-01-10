@@ -144,6 +144,12 @@ def row_files(request, date, row_index):
         time_new = target_row[h_map.get('time_utc_new', 10)]
         time_old = target_row[h_map.get('time_utc_old', 14)]
 
+        # Get coordinates
+        ra_deg = target_row[h_map.get('ra_deg_new')] if 'ra_deg_new' in h_map else None
+        dec_deg = target_row[h_map.get('dec_deg_new')] if 'dec_deg_new' in h_map else None
+        ra_hms = target_row[h_map.get('RA_hms_new')] if 'RA_hms_new' in h_map else None
+        dec_dms = target_row[h_map.get('Dec_dms_new')] if 'Dec_dms_new' in h_map else None
+
         files = get_row_files(date, attribute, int(seq_num), fits_new, fits_old)
 
         # Determine which is earlier
@@ -153,6 +159,12 @@ def row_files(request, date, row_index):
         else:
             result = {'left': files['new_time'], 'right': files['old_time'],
                       'left_time': str(time_new), 'right_time': str(time_old)}
+
+        # Add coordinates
+        result['ra_deg'] = float(ra_deg) if ra_deg else None
+        result['dec_deg'] = float(dec_deg) if dec_deg else None
+        result['ra_hms'] = str(ra_hms) if ra_hms else None
+        result['dec_dms'] = str(dec_dms) if dec_dms else None
 
         return JsonResponse(result)
     except Exception as e:

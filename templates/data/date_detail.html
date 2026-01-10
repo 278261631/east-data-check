@@ -64,6 +64,10 @@
                         </div>
                     </div>
                 </div>
+                <div class="links-section" id="linksSection">
+                    <h4>Query Links</h4>
+                    <div class="links" id="queryLinks"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -98,6 +102,12 @@
     .image-container { position: relative; cursor: pointer; }
     .image-container img { width: 100%; height: auto; border-radius: 4px; background: #000; display: block; image-rendering: pixelated; }
     .image-label { position: absolute; top: 0.25rem; right: 0.25rem; background: rgba(0,123,255,0.9); color: #fff; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
+
+    .links-section { margin-top: 1rem; padding: 0.5rem; border: 1px solid #dee2e6; border-radius: 8px; background: #f8f9fa; }
+    .links-section h4 { margin: 0 0 0.5rem 0; color: #495057; font-size: 0.9rem; }
+    .links { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .links a { display: inline-block; padding: 0.3rem 0.6rem; background: #28a745; color: #fff; border-radius: 4px; text-decoration: none; font-size: 0.8rem; }
+    .links a:hover { background: #218838; }
 </style>
 {% endblock %}
 
@@ -134,6 +144,39 @@ function showFiles(data) {
 
     renderGroup('left', data.left);
     renderGroup('right', data.right);
+    renderQueryLinks(data.ra_deg, data.dec_deg, data.ra_hms, data.dec_dms);
+}
+
+function renderQueryLinks(ra, dec, ra_hms, dec_dms) {
+    const linksDiv = document.getElementById('queryLinks');
+    linksDiv.innerHTML = '';
+
+    if (!ra || !dec) {
+        linksDiv.innerHTML = '<span style="color:#666;">No coordinates available</span>';
+        return;
+    }
+
+    // Format for PS1 (needs space-separated format like "09.185 41.420")
+    const ps1Ra = ra.toFixed(3);
+    const ps1Dec = dec >= 0 ? dec.toFixed(3) : dec.toFixed(3);
+
+    const links = [
+        {name: 'Aladin', url: `https://aladin.u-strasbg.fr/AladinLite/?target=${ra}%20${dec}&fov=0.1&survey=P/DSS2/color`},
+        {name: 'DLS', url: `https://www.legacysurvey.org/viewer/jpeg-cutout/?ra=${ra}&dec=${dec}&layer=ls-dr9&pixscale=0.5&bands=grz`},
+        {name: 'PS1', url: `https://ps1images.stsci.edu/cgi-bin/ps1cutouts?pos=${ps1Ra}+${ps1Dec}&filter=color&filter=g&filter=r&filter=i&filter=z&filter=y&filetypes=stack&auxiliary=data&size=500&output_size=0&verbose=0&autoscale=99.500000&catlist=`},
+        {name: 'Simbad', url: `http://simbad.u-strasbg.fr/simbad/sim-coo?Coord=${ra}%20${dec}&Radius.unit=arcsec&Radius=10`},
+        {name: 'TNS', url: `https://www.wis-tns.org/search?ra=${ra}&decl=${dec}&radius=10&coords_unit=arcsec`},
+        {name: 'VizieR', url: `http://vizier.u-strasbg.fr/viz-bin/VizieR-4?-c=${ra}+${dec}&-c.rs=10&-out.add=_r&-sort=_r&-out.max=4`},
+        {name: 'VSX', url: `https://www.aavso.org/vsx/index.php?view=results.get&coords=${ra}+${dec}&format=d&size=10&geom=r&unit=3&order=9`}
+    ];
+
+    links.forEach(link => {
+        const a = document.createElement('a');
+        a.href = link.url;
+        a.target = '_blank';
+        a.textContent = link.name;
+        linksDiv.appendChild(a);
+    });
 }
 
 function renderGroup(side, files) {
