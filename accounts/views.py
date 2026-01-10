@@ -6,7 +6,7 @@ from django.contrib import messages
 
 def login_view(request):
     if request.user.is_authenticated:
-        return redirect('home')
+        return redirect('data:date_list')
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
@@ -15,8 +15,8 @@ def login_view(request):
             user = authenticate(username=username, password=password)
             if user is not None:
                 login(request, user)
-                messages.success(request, f'Welcome back, {username}!')
-                return redirect('home')
+                next_url = request.GET.get('next', 'data:date_list')
+                return redirect(next_url)
     else:
         form = AuthenticationForm()
     return render(request, 'accounts/login.html', {'form': form})
@@ -24,5 +24,4 @@ def login_view(request):
 
 def logout_view(request):
     logout(request)
-    messages.info(request, 'You have been logged out.')
-    return redirect('home')
+    return redirect('accounts:login')
