@@ -44,9 +44,9 @@
         <div class="nav-links">
             {% if user.is_authenticated %}
                 <span>{{ user.username }}</span>
-                <a href="{% url 'accounts:logout' %}" class="btn">Logout</a>
+                <a href="{% url 'accounts:logout' %}" class="btn">退出</a>
             {% else %}
-                <a href="{% url 'accounts:login' %}" class="btn">Login</a>
+                <a href="{% url 'accounts:login' %}" class="btn">登录</a>
             {% endif %}
         </div>
     </nav>

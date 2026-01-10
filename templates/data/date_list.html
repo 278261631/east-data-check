@@ -1,20 +1,20 @@
 {% extends 'base.html' %}
 
-{% block title %}Date List - East Data Check{% endblock %}
+{% block title %}日期列表 - East Data Check{% endblock %}
 
 {% block content %}
 <div class="card">
-    <h2>Data Dates</h2>
+    <h2>数据日期</h2>
     <div class="date-grid mt-1">
         {% for date in dates %}
         <a href="{% url 'data:date_detail' date.name %}" class="date-item {% if date.has_data %}has-data{% endif %}">
             <span class="date-name">{{ date.name }}</span>
             {% if date.has_data %}
-            <span class="badge">Valid</span>
+            <span class="badge">有效</span>
             {% endif %}
         </a>
         {% empty %}
-        <p>No data directories found.</p>
+        <p>未找到数据目录</p>
         {% endfor %}
     </div>
 </div>

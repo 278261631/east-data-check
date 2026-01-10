@@ -8,7 +8,7 @@
         <div class="card">
             <div class="header-row">
                 <h2>{{ date }}</h2>
-                <a href="{% url 'data:date_list' %}" class="btn-back">Back to List</a>
+                <a href="{% url 'data:date_list' %}" class="btn-back">返回列表</a>
             </div>
 
             {% if error %}
@@ -33,7 +33,7 @@
                             {% endfor %}
                         </tr>
                         {% empty %}
-                        <tr><td colspan="{{ headers|length|add:1 }}">No data</td></tr>
+                        <tr><td colspan="{{ headers|length|add:1 }}">暂无数据</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -44,11 +44,11 @@
 
     <div class="viewer-panel" id="viewerPanel">
         <div class="card">
-            <h3 id="viewerHint">Select a row to view files</h3>
+            <h3 id="viewerHint">点击左侧表格行查看文件</h3>
             <div id="fileViewer" style="display:none;">
                 <div class="file-viewer">
                     <div class="time-group" id="leftGroup">
-                        <h4 id="leftTime">Earlier</h4>
+                        <h4 id="leftTime">较早</h4>
                         <div class="fits-downloads" id="leftFits"></div>
                         <div class="image-container" id="leftImageContainer">
                             <img id="leftImage" src="" alt="Image">
@@ -56,7 +56,7 @@
                         </div>
                     </div>
                     <div class="time-group" id="rightGroup">
-                        <h4 id="rightTime">Later</h4>
+                        <h4 id="rightTime">较晚</h4>
                         <div class="fits-downloads" id="rightFits"></div>
                         <div class="image-container" id="rightImageContainer">
                             <img id="rightImage" src="" alt="Image">
@@ -65,7 +65,7 @@
                     </div>
                 </div>
                 <div class="links-section" id="linksSection">
-                    <h4>Query Links</h4>
+                    <h4>查询链接</h4>
                     <div class="links" id="queryLinks"></div>
                 </div>
             </div>
@@ -152,7 +152,7 @@ function renderQueryLinks(ra, dec, ra_hms, dec_dms) {
     linksDiv.innerHTML = '';
 
     if (!ra || !dec) {
-        linksDiv.innerHTML = '<span style="color:#666;">No coordinates available</span>';
+        linksDiv.innerHTML = '<span style="color:#666;">暂无坐标信息</span>';
         return;
     }
 
