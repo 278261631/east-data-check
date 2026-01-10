@@ -183,5 +183,5 @@ def serve_fits(request, date, filename):
         raise Http404("File not found")
 
     response = FileResponse(open(file_path, 'rb'), content_type='application/octet-stream')
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    response['Content-Disposition'] = f'attachment; filename="{file_path.name}"'
     return response

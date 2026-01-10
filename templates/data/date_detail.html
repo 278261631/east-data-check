@@ -3,70 +3,64 @@
 {% block title %}{{ date }} - East Data Check{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="header-row">
-        <h2>{{ date }}</h2>
-        <a href="{% url 'data:date_list' %}" class="btn-back">Back to List</a>
-    </div>
+<div class="page-layout">
+    <div class="table-panel">
+        <div class="card">
+            <div class="header-row">
+                <h2>{{ date }}</h2>
+                <a href="{% url 'data:date_list' %}" class="btn-back">Back to List</a>
+            </div>
 
-    {% if error %}
-    <div class="alert alert-error mt-1">{{ error }}</div>
-    {% else %}
-    <div class="table-wrapper mt-1">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    {% for h in headers %}
-                    <th>{{ h }}</th>
-                    {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in rows %}
-                <tr class="data-row" data-row-index="{{ row.index }}">
-                    <td>{{ forloop.counter }}</td>
-                    {% for cell in row.data %}
-                    <td>{{ cell }}</td>
-                    {% endfor %}
-                </tr>
-                {% empty %}
-                <tr><td colspan="{{ headers|length|add:1 }}">No data</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% endif %}
-</div>
-
-<!-- File viewer modal -->
-<div id="fileModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Row Files</h3>
-            <span class="close-btn">&times;</span>
+            {% if error %}
+            <div class="alert alert-error mt-1">{{ error }}</div>
+            {% else %}
+            <div class="table-wrapper mt-1">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            {% for h in headers %}
+                            <th>{{ h }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr class="data-row" data-row-index="{{ row.index }}">
+                            <td>{{ forloop.counter }}</td>
+                            {% for cell in row.data %}
+                            <td>{{ cell }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="{{ headers|length|add:1 }}">No data</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
         </div>
-        <div class="modal-body">
-            <div class="file-viewer">
-                <div class="time-group" id="leftGroup">
-                    <h4 id="leftTime">Earlier</h4>
-                    <div class="fits-downloads" id="leftFits"></div>
-                    <div class="image-container">
-                        <img id="leftImage" src="" alt="Image">
-                        <div class="image-toggle">
-                            <button class="toggle-btn active" data-type="new">NEW</button>
-                            <button class="toggle-btn" data-type="lib">LIB</button>
+    </div>
+
+    <div class="viewer-panel" id="viewerPanel">
+        <div class="card">
+            <h3>Select a row to view files</h3>
+            <div id="fileViewer" style="display:none;">
+                <div class="file-viewer">
+                    <div class="time-group" id="leftGroup">
+                        <h4 id="leftTime">Earlier</h4>
+                        <div class="fits-downloads" id="leftFits"></div>
+                        <div class="image-container" id="leftImageContainer">
+                            <img id="leftImage" src="" alt="Image">
+                            <div class="image-label" id="leftLabel">NEW</div>
                         </div>
                     </div>
-                </div>
-                <div class="time-group" id="rightGroup">
-                    <h4 id="rightTime">Later</h4>
-                    <div class="fits-downloads" id="rightFits"></div>
-                    <div class="image-container">
-                        <img id="rightImage" src="" alt="Image">
-                        <div class="image-toggle">
-                            <button class="toggle-btn active" data-type="new">NEW</button>
-                            <button class="toggle-btn" data-type="lib">LIB</button>
+                    <div class="time-group" id="rightGroup">
+                        <h4 id="rightTime">Later</h4>
+                        <div class="fits-downloads" id="rightFits"></div>
+                        <div class="image-container" id="rightImageContainer">
+                            <img id="rightImage" src="" alt="Image">
+                            <div class="image-label" id="rightLabel">NEW</div>
                         </div>
                     </div>
                 </div>
@@ -78,47 +72,37 @@
 
 {% block extra_css %}
 <style>
-    .header-row { display: flex; justify-content: space-between; align-items: center; }
+    .container { max-width: 100%; padding: 1rem; }
+    .page-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
+    .table-panel .card { max-height: calc(100vh - 120px); display: flex; flex-direction: column; }
+    .viewer-panel .card { min-height: 300px; position: sticky; top: 1rem; }
+
+    .header-row { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
     .btn-back { background: #6c757d; color: #fff; padding: 0.5rem 1rem; border-radius: 4px; text-decoration: none; }
     .btn-back:hover { background: #5a6268; }
-    .table-wrapper { overflow-x: auto; max-height: 400px; }
-    .data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    .data-table th, .data-table td { padding: 0.5rem; text-align: left; border-bottom: 1px solid #dee2e6; white-space: nowrap; }
+    .table-wrapper { overflow: auto; flex: 1; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    .data-table th, .data-table td { padding: 0.4rem; text-align: left; border-bottom: 1px solid #dee2e6; white-space: nowrap; }
     .data-table th { background: #f8f9fa; font-weight: 600; position: sticky; top: 0; z-index: 1; }
     .data-table tbody tr { cursor: pointer; }
     .data-table tbody tr:hover { background: #e9ecef; }
     .data-table tbody tr.selected { background: #cce5ff; }
 
-    /* Modal */
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
-    .modal.show { display: flex; align-items: center; justify-content: center; }
-    .modal-content { background: #fff; border-radius: 8px; width: 95%; max-width: 1400px; max-height: 90vh; overflow: hidden; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #dee2e6; }
-    .modal-header h3 { margin: 0; }
-    .close-btn { font-size: 1.5rem; cursor: pointer; color: #666; }
-    .close-btn:hover { color: #000; }
-    .modal-body { padding: 1rem; overflow-y: auto; max-height: calc(90vh - 60px); }
-
-    /* File viewer */
-    .file-viewer { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .time-group { border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem; }
-    .time-group h4 { margin: 0 0 0.5rem 0; color: #495057; }
+    .file-viewer { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .time-group { border: 1px solid #dee2e6; border-radius: 8px; padding: 0.5rem; }
+    .time-group h4 { margin: 0 0 0.5rem 0; color: #495057; font-size: 0.9rem; }
     .fits-downloads { margin-bottom: 0.5rem; }
-    .fits-downloads a { display: inline-block; margin-right: 0.5rem; margin-bottom: 0.25rem; padding: 0.25rem 0.5rem; background: #007bff; color: #fff; border-radius: 4px; text-decoration: none; font-size: 0.8rem; }
+    .fits-downloads a { display: inline-block; margin-right: 0.25rem; margin-bottom: 0.25rem; padding: 0.2rem 0.4rem; background: #007bff; color: #fff; border-radius: 4px; text-decoration: none; font-size: 0.75rem; }
     .fits-downloads a:hover { background: #0056b3; }
-    .image-container { position: relative; }
-    .image-container img { width: 100%; height: auto; border-radius: 4px; background: #000; }
-    .image-toggle { position: absolute; top: 0.5rem; right: 0.5rem; display: flex; gap: 0.25rem; }
-    .toggle-btn { padding: 0.25rem 0.5rem; border: none; background: rgba(255,255,255,0.7); cursor: pointer; border-radius: 4px; font-size: 0.75rem; }
-    .toggle-btn.active { background: #007bff; color: #fff; }
-    .toggle-btn:hover { background: #0056b3; color: #fff; }
+    .image-container { position: relative; cursor: pointer; }
+    .image-container img { width: 100%; height: auto; border-radius: 4px; background: #000; display: block; }
+    .image-label { position: absolute; top: 0.25rem; right: 0.25rem; background: rgba(0,123,255,0.9); color: #fff; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 const DATE = '{{ date }}';
-let currentFiles = null;
 
 document.querySelectorAll('.data-row').forEach(row => {
     row.addEventListener('click', function() {
@@ -137,28 +121,29 @@ function loadRowFiles(rowIndex) {
                 alert(data.error);
                 return;
             }
-            currentFiles = data;
-            showModal(data);
+            showFiles(data);
         });
 }
 
-function showModal(data) {
+function showFiles(data) {
+    document.getElementById('fileViewer').style.display = 'block';
     document.getElementById('leftTime').textContent = data.left_time || 'Earlier';
     document.getElementById('rightTime').textContent = data.right_time || 'Later';
 
     renderGroup('left', data.left);
     renderGroup('right', data.right);
-
-    document.getElementById('fileModal').classList.add('show');
 }
 
 function renderGroup(side, files) {
     const fitsDiv = document.getElementById(side + 'Fits');
     const img = document.getElementById(side + 'Image');
+    const label = document.getElementById(side + 'Label');
+    const container = document.getElementById(side + 'ImageContainer');
 
     fitsDiv.innerHTML = '';
     img.src = '';
     img.style.display = 'none';
+    label.style.display = 'none';
 
     let jpgNew = null, jpgLib = null;
 
@@ -166,7 +151,8 @@ function renderGroup(side, files) {
         if (f.type === 'fits') {
             const a = document.createElement('a');
             a.href = `/data/${DATE}/fits/${f.name}`;
-            a.textContent = f.name.includes('_lib') ? 'LIB.fits' : 'NEW.fits';
+            a.textContent = f.name;
+            a.title = f.name;
             fitsDiv.appendChild(a);
         } else if (f.type === 'jpg') {
             if (f.subtype === 'new') jpgNew = f.name;
@@ -176,36 +162,38 @@ function renderGroup(side, files) {
 
     if (jpgNew || jpgLib) {
         img.style.display = 'block';
+        label.style.display = 'block';
         img.dataset.jpgNew = jpgNew || '';
         img.dataset.jpgLib = jpgLib || '';
+        img.dataset.current = 'new';
         img.src = `/data/${DATE}/image/${jpgNew || jpgLib}`;
+        label.textContent = jpgNew ? 'NEW' : 'LIB';
+
+        container.onclick = function() {
+            toggleImage(side);
+        };
+    } else {
+        container.onclick = null;
     }
 }
 
-document.querySelectorAll('.image-toggle').forEach(toggle => {
-    toggle.querySelectorAll('.toggle-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const container = this.closest('.image-container');
-            const img = container.querySelector('img');
-            const type = this.dataset.type;
-            const src = type === 'new' ? img.dataset.jpgNew : img.dataset.jpgLib;
+function toggleImage(side) {
+    const img = document.getElementById(side + 'Image');
+    const label = document.getElementById(side + 'Label');
+    const current = img.dataset.current;
+    const jpgNew = img.dataset.jpgNew;
+    const jpgLib = img.dataset.jpgLib;
 
-            if (src) {
-                img.src = `/data/${DATE}/image/${src}`;
-                toggle.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-            }
-        });
-    });
-});
-
-document.querySelector('.close-btn').addEventListener('click', () => {
-    document.getElementById('fileModal').classList.remove('show');
-});
-
-document.getElementById('fileModal').addEventListener('click', function(e) {
-    if (e.target === this) this.classList.remove('show');
-});
+    if (current === 'new' && jpgLib) {
+        img.src = `/data/${DATE}/image/${jpgLib}`;
+        img.dataset.current = 'lib';
+        label.textContent = 'LIB';
+    } else if (current === 'lib' && jpgNew) {
+        img.src = `/data/${DATE}/image/${jpgNew}`;
+        img.dataset.current = 'new';
+        label.textContent = 'NEW';
+    }
+}
 </script>
 {% endblock %}
 
