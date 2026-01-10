@@ -9,8 +9,7 @@
         {% if user.is_authenticated %}
             Hello, {{ user.username }}!
         {% else %}
-            Please <a href="{% url 'accounts:login' %}" class="link">login</a> or 
-            <a href="{% url 'accounts:register' %}" class="link">register</a> to continue.
+            Please <a href="{% url 'accounts:login' %}" class="link">login</a> to continue.
         {% endif %}
     </p>
 </div>

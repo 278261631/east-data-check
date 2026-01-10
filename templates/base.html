@@ -46,8 +46,7 @@
                 <span>{{ user.username }}</span>
                 <a href="{% url 'accounts:logout' %}" class="btn">Logout</a>
             {% else %}
-                <a href="{% url 'accounts:login' %}">Login</a>
-                <a href="{% url 'accounts:register' %}" class="btn">Register</a>
+                <a href="{% url 'accounts:login' %}" class="btn">Login</a>
             {% endif %}
         </div>
     </nav>
