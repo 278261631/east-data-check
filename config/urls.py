@@ -11,7 +11,7 @@ def home(request):
 
 urlpatterns = [
     path("east-admin/", admin.site.urls),
-    path("accounts/", include("accounts.urls")),
+    path("east-accounts/", include("accounts.urls")),
     path("east-data/", include("data.urls")),
     path("", home, name="home"),
 ]

@@ -98,7 +98,7 @@ USE_TZ = True
 STATIC_URL = "/east-static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
-LOGIN_URL = '/accounts/login/'
+LOGIN_URL = '/east-accounts/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
