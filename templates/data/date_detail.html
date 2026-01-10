@@ -8,7 +8,7 @@
         <h2>{{ date }}</h2>
         <a href="{% url 'data:date_list' %}" class="btn-back">Back to List</a>
     </div>
-    
+
     {% if error %}
     <div class="alert alert-error mt-1">{{ error }}</div>
     {% else %}
@@ -24,9 +24,9 @@
             </thead>
             <tbody>
                 {% for row in rows %}
-                <tr>
+                <tr class="data-row" data-row-index="{{ row.index }}">
                     <td>{{ forloop.counter }}</td>
-                    {% for cell in row %}
+                    {% for cell in row.data %}
                     <td>{{ cell }}</td>
                     {% endfor %}
                 </tr>
@@ -38,6 +38,42 @@
     </div>
     {% endif %}
 </div>
+
+<!-- File viewer modal -->
+<div id="fileModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Row Files</h3>
+            <span class="close-btn">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="file-viewer">
+                <div class="time-group" id="leftGroup">
+                    <h4 id="leftTime">Earlier</h4>
+                    <div class="fits-downloads" id="leftFits"></div>
+                    <div class="image-container">
+                        <img id="leftImage" src="" alt="Image">
+                        <div class="image-toggle">
+                            <button class="toggle-btn active" data-type="new">NEW</button>
+                            <button class="toggle-btn" data-type="lib">LIB</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="time-group" id="rightGroup">
+                    <h4 id="rightTime">Later</h4>
+                    <div class="fits-downloads" id="rightFits"></div>
+                    <div class="image-container">
+                        <img id="rightImage" src="" alt="Image">
+                        <div class="image-toggle">
+                            <button class="toggle-btn active" data-type="new">NEW</button>
+                            <button class="toggle-btn" data-type="lib">LIB</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_css %}
@@ -45,11 +81,131 @@
     .header-row { display: flex; justify-content: space-between; align-items: center; }
     .btn-back { background: #6c757d; color: #fff; padding: 0.5rem 1rem; border-radius: 4px; text-decoration: none; }
     .btn-back:hover { background: #5a6268; }
-    .table-wrapper { overflow-x: auto; }
-    .data-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    .data-table th, .data-table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #dee2e6; white-space: nowrap; }
-    .data-table th { background: #f8f9fa; font-weight: 600; position: sticky; top: 0; }
-    .data-table tbody tr:hover { background: #f8f9fa; }
+    .table-wrapper { overflow-x: auto; max-height: 400px; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .data-table th, .data-table td { padding: 0.5rem; text-align: left; border-bottom: 1px solid #dee2e6; white-space: nowrap; }
+    .data-table th { background: #f8f9fa; font-weight: 600; position: sticky; top: 0; z-index: 1; }
+    .data-table tbody tr { cursor: pointer; }
+    .data-table tbody tr:hover { background: #e9ecef; }
+    .data-table tbody tr.selected { background: #cce5ff; }
+
+    /* Modal */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+    .modal.show { display: flex; align-items: center; justify-content: center; }
+    .modal-content { background: #fff; border-radius: 8px; width: 95%; max-width: 1400px; max-height: 90vh; overflow: hidden; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #dee2e6; }
+    .modal-header h3 { margin: 0; }
+    .close-btn { font-size: 1.5rem; cursor: pointer; color: #666; }
+    .close-btn:hover { color: #000; }
+    .modal-body { padding: 1rem; overflow-y: auto; max-height: calc(90vh - 60px); }
+
+    /* File viewer */
+    .file-viewer { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .time-group { border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem; }
+    .time-group h4 { margin: 0 0 0.5rem 0; color: #495057; }
+    .fits-downloads { margin-bottom: 0.5rem; }
+    .fits-downloads a { display: inline-block; margin-right: 0.5rem; margin-bottom: 0.25rem; padding: 0.25rem 0.5rem; background: #007bff; color: #fff; border-radius: 4px; text-decoration: none; font-size: 0.8rem; }
+    .fits-downloads a:hover { background: #0056b3; }
+    .image-container { position: relative; }
+    .image-container img { width: 100%; height: auto; border-radius: 4px; background: #000; }
+    .image-toggle { position: absolute; top: 0.5rem; right: 0.5rem; display: flex; gap: 0.25rem; }
+    .toggle-btn { padding: 0.25rem 0.5rem; border: none; background: rgba(255,255,255,0.7); cursor: pointer; border-radius: 4px; font-size: 0.75rem; }
+    .toggle-btn.active { background: #007bff; color: #fff; }
+    .toggle-btn:hover { background: #0056b3; color: #fff; }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const DATE = '{{ date }}';
+let currentFiles = null;
+
+document.querySelectorAll('.data-row').forEach(row => {
+    row.addEventListener('click', function() {
+        const rowIndex = this.dataset.rowIndex;
+        document.querySelectorAll('.data-row').forEach(r => r.classList.remove('selected'));
+        this.classList.add('selected');
+        loadRowFiles(rowIndex);
+    });
+});
+
+function loadRowFiles(rowIndex) {
+    fetch(`/data/${DATE}/row/${rowIndex}/files/`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            currentFiles = data;
+            showModal(data);
+        });
+}
+
+function showModal(data) {
+    document.getElementById('leftTime').textContent = data.left_time || 'Earlier';
+    document.getElementById('rightTime').textContent = data.right_time || 'Later';
+
+    renderGroup('left', data.left);
+    renderGroup('right', data.right);
+
+    document.getElementById('fileModal').classList.add('show');
+}
+
+function renderGroup(side, files) {
+    const fitsDiv = document.getElementById(side + 'Fits');
+    const img = document.getElementById(side + 'Image');
+
+    fitsDiv.innerHTML = '';
+    img.src = '';
+    img.style.display = 'none';
+
+    let jpgNew = null, jpgLib = null;
+
+    files.forEach(f => {
+        if (f.type === 'fits') {
+            const a = document.createElement('a');
+            a.href = `/data/${DATE}/fits/${f.name}`;
+            a.textContent = f.name.includes('_lib') ? 'LIB.fits' : 'NEW.fits';
+            fitsDiv.appendChild(a);
+        } else if (f.type === 'jpg') {
+            if (f.subtype === 'new') jpgNew = f.name;
+            else jpgLib = f.name;
+        }
+    });
+
+    if (jpgNew || jpgLib) {
+        img.style.display = 'block';
+        img.dataset.jpgNew = jpgNew || '';
+        img.dataset.jpgLib = jpgLib || '';
+        img.src = `/data/${DATE}/image/${jpgNew || jpgLib}`;
+    }
+}
+
+document.querySelectorAll('.image-toggle').forEach(toggle => {
+    toggle.querySelectorAll('.toggle-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const container = this.closest('.image-container');
+            const img = container.querySelector('img');
+            const type = this.dataset.type;
+            const src = type === 'new' ? img.dataset.jpgNew : img.dataset.jpgLib;
+
+            if (src) {
+                img.src = `/data/${DATE}/image/${src}`;
+                toggle.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            }
+        });
+    });
+});
+
+document.querySelector('.close-btn').addEventListener('click', () => {
+    document.getElementById('fileModal').classList.remove('show');
+});
+
+document.getElementById('fileModal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('show');
+});
+</script>
 {% endblock %}
 
