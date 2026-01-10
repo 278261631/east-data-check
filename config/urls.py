@@ -10,8 +10,8 @@ def home(request):
 
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    path("east-admin/", admin.site.urls),
     path("accounts/", include("accounts.urls")),
-    path("data/", include("data.urls")),
+    path("east-data/", include("data.urls")),
     path("", home, name="home"),
 ]

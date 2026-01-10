@@ -125,7 +125,7 @@ document.querySelectorAll('.data-row').forEach(row => {
 });
 
 function loadRowFiles(rowIndex) {
-    fetch(`/data/${DATE}/row/${rowIndex}/files/`)
+    fetch(`/east-data/${DATE}/row/${rowIndex}/files/`)
         .then(r => r.json())
         .then(data => {
             if (data.error) {
@@ -195,7 +195,7 @@ function renderGroup(side, files) {
     files.forEach(f => {
         if (f.type === 'fits') {
             const a = document.createElement('a');
-            a.href = `/data/${DATE}/fits/${f.name}`;
+            a.href = `/east-data/${DATE}/fits/${f.name}`;
             a.textContent = f.name;
             a.title = f.name;
             fitsDiv.appendChild(a);
@@ -211,7 +211,7 @@ function renderGroup(side, files) {
         img.dataset.jpgNew = jpgNew || '';
         img.dataset.jpgLib = jpgLib || '';
         img.dataset.current = 'new';
-        img.src = `/data/${DATE}/image/${jpgNew || jpgLib}`;
+        img.src = `/east-data/${DATE}/image/${jpgNew || jpgLib}`;
         label.textContent = jpgNew ? 'NEW' : 'LIB';
 
         container.onclick = function() {
@@ -230,11 +230,11 @@ function toggleImage(side) {
     const jpgLib = img.dataset.jpgLib;
 
     if (current === 'new' && jpgLib) {
-        img.src = `/data/${DATE}/image/${jpgLib}`;
+        img.src = `/east-data/${DATE}/image/${jpgLib}`;
         img.dataset.current = 'lib';
         label.textContent = 'LIB';
     } else if (current === 'lib' && jpgNew) {
-        img.src = `/data/${DATE}/image/${jpgNew}`;
+        img.src = `/east-data/${DATE}/image/${jpgNew}`;
         img.dataset.current = 'new';
         label.textContent = 'NEW';
     }
