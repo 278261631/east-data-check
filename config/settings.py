@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "corsheaders",
     "accounts",
+    "data",
 ]
 
 MIDDLEWARE = [
@@ -76,6 +77,10 @@ AUTH_PASSWORD_VALIDATORS = []
 ADMIN_USERNAME = config('ADMIN_USERNAME', default='')
 ADMIN_PASSWORD = config('ADMIN_PASSWORD', default='')
 ADMIN_EMAIL = config('ADMIN_EMAIL', default='admin@localhost')
+
+# Data path config
+DATA_ROOT = config('DATA_ROOT', default='')
+DATA_FILE = config('DATA_FILE', default='candidate-final/candidate-final.xlsx')
 
 
 # Internationalization

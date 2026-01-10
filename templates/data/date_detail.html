@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ date }} - East Data Check{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="header-row">
+        <h2>{{ date }}</h2>
+        <a href="{% url 'data:date_list' %}" class="btn-back">Back to List</a>
+    </div>
+    
+    {% if error %}
+    <div class="alert alert-error mt-1">{{ error }}</div>
+    {% else %}
+    <div class="table-wrapper mt-1">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    {% for h in headers %}
+                    <th>{{ h }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    {% for cell in row %}
+                    <td>{{ cell }}</td>
+                    {% endfor %}
+                </tr>
+                {% empty %}
+                <tr><td colspan="{{ headers|length|add:1 }}">No data</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .header-row { display: flex; justify-content: space-between; align-items: center; }
+    .btn-back { background: #6c757d; color: #fff; padding: 0.5rem 1rem; border-radius: 4px; text-decoration: none; }
+    .btn-back:hover { background: #5a6268; }
+    .table-wrapper { overflow-x: auto; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .data-table th, .data-table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #dee2e6; white-space: nowrap; }
+    .data-table th { background: #f8f9fa; font-weight: 600; position: sticky; top: 0; }
+    .data-table tbody tr:hover { background: #f8f9fa; }
+</style>
+{% endblock %}
+

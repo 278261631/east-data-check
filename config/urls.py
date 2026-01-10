@@ -1,14 +1,17 @@
 from django.contrib import admin
 from django.urls import path, include
-from django.shortcuts import render
+from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
 
 
+@login_required
 def home(request):
-    return render(request, 'home.html')
+    return redirect('data:date_list')
 
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include("accounts.urls")),
+    path("data/", include("data.urls")),
     path("", home, name="home"),
 ]
