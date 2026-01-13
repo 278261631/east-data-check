@@ -489,19 +489,21 @@ function renderQueryLinks(ra, dec, ra_hms, dec_dms) {
     const raH = Math.floor(raHours);
     const raM = Math.floor((raHours - raH) * 60);
     const raS = ((raHours - raH) * 60 - raM) * 60;
-    const mpcRa = `${String(raH).padStart(2, '0')}%20${String(raM).padStart(2, '0')}%20${raS.toFixed(1)}`;
+    const raSStr = raS < 10 ? '0' + raS.toFixed(1) : raS.toFixed(1);
+    const mpcRa = `${String(raH).padStart(2, '0')}%20${String(raM).padStart(2, '0')}%20${raSStr}`;
     // Convert DEC from degrees to DMS format (±DD MM SS.s)
     const decSign = dec >= 0 ? '%2B' : '-';
     const decAbs = Math.abs(dec);
     const decD = Math.floor(decAbs);
     const decM = Math.floor((decAbs - decD) * 60);
     const decS = ((decAbs - decD) * 60 - decM) * 60;
-    const mpcDec = `${decSign}${String(decD).padStart(2, '0')}%20${String(decM).padStart(2, '0')}%20${decS.toFixed(2)}`;
+    const decSStr = decS < 10 ? '0' + decS.toFixed(2) : decS.toFixed(2);
+    const mpcDec = `${decSign}${String(decD).padStart(2, '0')}%20${String(decM).padStart(2, '0')}%20${decSStr}`;
 
     // Format HMS/DMS for display
     const decSignDisplay = dec >= 0 ? '+' : '-';
-    const raHmsDisplay = `${String(raH).padStart(2, '0')}h ${String(raM).padStart(2, '0')}m ${raS.toFixed(2)}s`;
-    const decDmsDisplay = `${decSignDisplay}${String(decD).padStart(2, '0')}° ${String(decM).padStart(2, '0')}' ${decS.toFixed(2)}"`;
+    const raHmsDisplay = `${String(raH).padStart(2, '0')}h ${String(raM).padStart(2, '0')}m ${raSStr}s`;
+    const decDmsDisplay = `${decSignDisplay}${String(decD).padStart(2, '0')}° ${String(decM).padStart(2, '0')}' ${decSStr}"`;
 
     const links = [
         {name: 'MPC', url: `https://data.minorplanetcenter.net/cgi-bin/mpcheck.cgi?year=${mpcYear}&month=${mpcMonth}&day=${mpcDay}&which=pos&ra=${mpcRa}&decl=${mpcDec}&TextArea=&limit=20&oc=N89&radius=10&sort=d&mot=h&tmot=s&pdes=u&needed=f&ps=n&type=p`},
