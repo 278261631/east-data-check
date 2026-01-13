@@ -2,10 +2,18 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.http import JsonResponse, FileResponse, Http404
+from django.views.decorators.http import require_POST
 from pathlib import Path
 import os
 import re
 import openpyxl
+import time
+import json
+
+# In-memory storage for online users and their current row
+# Format: {date: {username: {'row': row_index, 'last_seen': timestamp}}}
+online_users = {}
+ONLINE_TIMEOUT = 10  # seconds
 
 
 @login_required
@@ -197,3 +205,60 @@ def serve_fits(request, date, filename):
     response = FileResponse(open(file_path, 'rb'), content_type='application/octet-stream')
     response['Content-Disposition'] = f'attachment; filename="{file_path.name}"'
     return response
+
+
+def clean_expired_users(date):
+    """Remove users who haven't been seen recently"""
+    if date not in online_users:
+        return
+    current_time = time.time()
+    expired = [user for user, data in online_users[date].items()
+               if current_time - data['last_seen'] > ONLINE_TIMEOUT]
+    for user in expired:
+        del online_users[date][user]
+    if not online_users[date]:
+        del online_users[date]
+
+
+@login_required
+@require_POST
+def update_status(request, date):
+    """Update user's current row status"""
+    try:
+        data = json.loads(request.body)
+        row_index = data.get('row_index')
+        username = request.user.username
+
+        if date not in online_users:
+            online_users[date] = {}
+
+        online_users[date][username] = {
+            'row': row_index,
+            'last_seen': time.time()
+        }
+
+        clean_expired_users(date)
+
+        return JsonResponse({'status': 'ok'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def get_status(request, date):
+    """Get all online users and their current rows"""
+    clean_expired_users(date)
+
+    users = {}
+    if date in online_users:
+        for username, data in online_users[date].items():
+            users[username] = {
+                'row': data['row'],
+                'last_seen': data['last_seen']
+            }
+
+    return JsonResponse({
+        'users': users,
+        'current_user': request.user.username
+    })
+

@@ -8,6 +8,10 @@
         <div class="card">
             <div class="header-row">
                 <h2>{{ date }}</h2>
+                <div class="online-users">
+                    <span class="online-label">在线:</span>
+                    <span id="onlineUsersList">-</span>
+                </div>
                 <a href="{% url 'data:date_list' %}" class="btn-back">返回列表</a>
             </div>
 
@@ -19,6 +23,7 @@
                     <thead>
                         <tr>
                             <th>#</th>
+                            <th>User</th>
                             {% for h in headers %}
                             <th>{{ h }}</th>
                             {% endfor %}
@@ -28,12 +33,13 @@
                         {% for row in rows %}
                         <tr class="data-row" data-row-index="{{ row.index }}">
                             <td>{{ forloop.counter }}</td>
+                            <td class="user-cell" data-row="{{ row.index }}"></td>
                             {% for cell in row.data %}
                             <td>{{ cell }}</td>
                             {% endfor %}
                         </tr>
                         {% empty %}
-                        <tr><td colspan="{{ headers|length|add:1 }}">暂无数据</td></tr>
+                        <tr><td colspan="{{ headers|length|add:2 }}">暂无数据</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -85,7 +91,12 @@
     .table-panel .card { max-height: calc(100vh - 120px); display: flex; flex-direction: column; overflow: hidden; }
     .viewer-panel .card { position: sticky; top: 1rem; }
 
-    .header-row { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+    .header-row { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; gap: 1rem; }
+    .online-users { display: flex; align-items: center; gap: 0.5rem; background: #e8f5e9; padding: 0.3rem 0.8rem; border-radius: 4px; font-size: 0.85rem; }
+    .online-label { color: #2e7d32; font-weight: 600; }
+    #onlineUsersList { color: #1b5e20; }
+    .online-user { display: inline-block; background: #4caf50; color: #fff; padding: 0.15rem 0.5rem; border-radius: 12px; margin: 0 0.2rem; font-size: 0.75rem; }
+    .online-user.current { background: #1976d2; }
     .btn-back { background: #6c757d; color: #fff; padding: 0.5rem 1rem; border-radius: 4px; text-decoration: none; }
     .btn-back:hover { background: #5a6268; }
     .table-wrapper { overflow: auto; flex: 1; }
@@ -95,6 +106,10 @@
     .data-table tbody tr { cursor: pointer; }
     .data-table tbody tr:hover { background: #e9ecef; }
     .data-table tbody tr.selected { background: #cce5ff; }
+    .data-table tbody tr.other-user { background: #fff3e0; }
+    .user-cell { min-width: 60px; }
+    .user-badge { display: inline-block; background: #ff9800; color: #fff; padding: 0.1rem 0.4rem; border-radius: 10px; font-size: 0.65rem; }
+    .user-badge.current { background: #1976d2; }
 
     .file-viewer { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
     .time-group { border: 1px solid #dee2e6; border-radius: 8px; padding: 0.5rem; }
@@ -122,13 +137,18 @@
 {% block extra_js %}
 <script>
 const DATE = '{{ date }}';
+const CURRENT_USER = '{{ request.user.username }}';
+let currentRow = null;
+let statusInterval = null;
 
 document.querySelectorAll('.data-row').forEach(row => {
     row.addEventListener('click', function() {
         const rowIndex = this.dataset.rowIndex;
         document.querySelectorAll('.data-row').forEach(r => r.classList.remove('selected'));
         this.classList.add('selected');
+        currentRow = rowIndex;
         loadRowFiles(rowIndex);
+        updateUserStatus(rowIndex);
     });
 });
 
@@ -143,6 +163,99 @@ function loadRowFiles(rowIndex) {
             showFiles(data);
         });
 }
+
+function updateUserStatus(rowIndex) {
+    fetch(`/east-data/${DATE}/status/update/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({row_index: rowIndex})
+    });
+}
+
+function fetchStatus() {
+    fetch(`/east-data/${DATE}/status/`)
+        .then(r => r.json())
+        .then(data => {
+            updateOnlineUsers(data.users, data.current_user);
+            updateRowUsers(data.users, data.current_user);
+        });
+}
+
+function updateOnlineUsers(users, currentUser) {
+    const usersList = document.getElementById('onlineUsersList');
+    if (Object.keys(users).length === 0) {
+        usersList.innerHTML = '-';
+        return;
+    }
+
+    const userBadges = Object.keys(users).map(username => {
+        const isCurrent = username === currentUser;
+        return `<span class="online-user ${isCurrent ? 'current' : ''}">${username}</span>`;
+    }).join('');
+
+    usersList.innerHTML = userBadges;
+}
+
+function updateRowUsers(users, currentUser) {
+    // Clear all user cells
+    document.querySelectorAll('.user-cell').forEach(cell => {
+        cell.innerHTML = '';
+    });
+
+    // Clear other-user class
+    document.querySelectorAll('.data-row').forEach(row => {
+        row.classList.remove('other-user');
+    });
+
+    // Update user cells
+    Object.entries(users).forEach(([username, data]) => {
+        const rowIndex = data.row;
+        if (rowIndex) {
+            const cell = document.querySelector(`.user-cell[data-row="${rowIndex}"]`);
+            const row = document.querySelector(`.data-row[data-row-index="${rowIndex}"]`);
+            if (cell) {
+                const isCurrent = username === currentUser;
+                const badge = document.createElement('span');
+                badge.className = `user-badge ${isCurrent ? 'current' : ''}`;
+                badge.textContent = username;
+                cell.appendChild(badge);
+
+                if (!isCurrent && row) {
+                    row.classList.add('other-user');
+                }
+            }
+        }
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Start polling for status updates
+statusInterval = setInterval(fetchStatus, 2000);
+fetchStatus();
+
+// Update status periodically if user is viewing a row
+setInterval(() => {
+    if (currentRow) {
+        updateUserStatus(currentRow);
+    }
+}, 3000);
 
 function showFiles(data) {
     document.getElementById('viewerHint').style.display = 'none';

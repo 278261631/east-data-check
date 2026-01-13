@@ -9,5 +9,7 @@ urlpatterns = [
     path('<str:date>/row/<int:row_index>/files/', views.row_files, name='row_files'),
     path('<str:date>/image/<str:filename>', views.serve_image, name='serve_image'),
     path('<str:date>/fits/<str:filename>', views.serve_fits, name='serve_fits'),
+    path('<str:date>/status/', views.get_status, name='get_status'),
+    path('<str:date>/status/update/', views.update_status, name='update_status'),
 ]
 
