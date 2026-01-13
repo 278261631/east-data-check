@@ -460,11 +460,13 @@ function showFiles(data) {
 
     renderGroup('left', data.left);
     renderGroup('right', data.right);
-    renderQueryLinks(data.ra_deg, data.dec_deg, data.ra_hms, data.dec_dms);
+    // Use the later observation time for MPC query
+    const obsTime = data.right_time || data.left_time || null;
+    renderQueryLinks(data.ra_deg, data.dec_deg, data.ra_hms, data.dec_dms, obsTime);
     updateJudgeStatus(currentRow, true);  // Force update remark when row changes
 }
 
-function renderQueryLinks(ra, dec, ra_hms, dec_dms) {
+function renderQueryLinks(ra, dec, ra_hms, dec_dms, obsTime) {
     const linksDiv = document.getElementById('queryLinks');
     const coordsDiv = document.getElementById('coordsInfo');
     linksDiv.innerHTML = '';
@@ -481,9 +483,43 @@ function renderQueryLinks(ra, dec, ra_hms, dec_dms) {
 
     // Format for MPC (needs date and HMS/DMS format)
     const dateStr = '{{ date }}';
-    const mpcYear = dateStr.substring(0, 4);
-    const mpcMonth = parseInt(dateStr.substring(4, 6));
-    const mpcDay = dateStr.substring(6, 8) + '.5';
+    let mpcYear = null;
+    let mpcMonth = null;
+    let mpcDay = null;
+    let mpcTimeError = null;
+
+    // Calculate precise day fraction from observation time
+    // obsTime format: "YYYY-MM-DD HH:MM:SS" or similar
+    if (obsTime) {
+        const dateMatch = obsTime.match(/(\d{4})-(\d{2})-(\d{2})/);
+        const timeMatch = obsTime.match(/(\d{2}):(\d{2}):(\d{2})/);
+
+        if (dateMatch && timeMatch) {
+            mpcYear = dateMatch[1];
+            mpcMonth = parseInt(dateMatch[2]);
+            const dayNum = parseInt(dateMatch[3]);
+            const hours = parseInt(timeMatch[1]);
+            const minutes = parseInt(timeMatch[2]);
+            const seconds = parseInt(timeMatch[3]);
+            const dayFraction = (hours + minutes / 60 + seconds / 3600) / 24;
+            mpcDay = (dayNum + dayFraction).toFixed(4);
+        } else if (timeMatch) {
+            // Only time available, use date from dateStr
+            mpcYear = dateStr.substring(0, 4);
+            mpcMonth = parseInt(dateStr.substring(4, 6));
+            const dayNum = parseInt(dateStr.substring(6, 8));
+            const hours = parseInt(timeMatch[1]);
+            const minutes = parseInt(timeMatch[2]);
+            const seconds = parseInt(timeMatch[3]);
+            const dayFraction = (hours + minutes / 60 + seconds / 3600) / 24;
+            mpcDay = (dayNum + dayFraction).toFixed(4);
+        } else {
+            mpcTimeError = 'Time format error: ' + obsTime;
+        }
+    } else {
+        mpcTimeError = 'No observation time';
+    }
+
     // Convert RA from degrees to HMS format (HH MM SS.s)
     const raHours = ra / 15;
     const raH = Math.floor(raHours);
@@ -506,7 +542,6 @@ function renderQueryLinks(ra, dec, ra_hms, dec_dms) {
     const decDmsDisplay = `${decSignDisplay}${String(decD).padStart(2, '0')}° ${String(decM).padStart(2, '0')}' ${decSStr}"`;
 
     const links = [
-        {name: 'MPC', url: `https://data.minorplanetcenter.net/cgi-bin/mpcheck.cgi?year=${mpcYear}&month=${mpcMonth}&day=${mpcDay}&which=pos&ra=${mpcRa}&decl=${mpcDec}&TextArea=&limit=20&oc=N89&radius=10&sort=d&mot=h&tmot=s&pdes=u&needed=f&ps=n&type=p`},
         {name: 'Aladin', url: `https://aladin.u-strasbg.fr/AladinLite/?target=${ra}%20${dec}&fov=0.1&survey=P/DSS2/color`},
         {name: 'DLS', url: `https://www.legacysurvey.org/viewer/jpeg-cutout/?ra=${ra}&dec=${dec}&layer=ls-dr9&pixscale=0.5&bands=grz`},
         {name: 'PS1', url: `https://ps1images.stsci.edu/cgi-bin/ps1cutouts?pos=${ps1Ra}+${ps1Dec}&filter=color&filter=g&filter=r&filter=i&filter=z&filter=y&filetypes=stack&auxiliary=data&size=500&output_size=0&verbose=0&autoscale=99.500000&catlist=`},
@@ -516,6 +551,11 @@ function renderQueryLinks(ra, dec, ra_hms, dec_dms) {
         {name: 'VSX', url: `https://www.aavso.org/vsx/index.php?view=results.get&coords=${ra}+${dec}&format=d&size=10&geom=r&unit=3&order=9`}
     ];
 
+    // Add MPC link only if time is valid
+    if (!mpcTimeError) {
+        links.unshift({name: 'MPC', url: `https://data.minorplanetcenter.net/cgi-bin/mpcheck.cgi?year=${mpcYear}&month=${mpcMonth}&day=${mpcDay}&which=pos&ra=${mpcRa}&decl=${mpcDec}&TextArea=&limit=20&oc=N89&radius=10&sort=d&mot=h&tmot=s&pdes=u&needed=f&ps=n&type=p`});
+    }
+
     links.forEach(link => {
         const a = document.createElement('a');
         a.href = link.url;
@@ -523,6 +563,14 @@ function renderQueryLinks(ra, dec, ra_hms, dec_dms) {
         a.textContent = link.name;
         linksDiv.appendChild(a);
     });
+
+    // Show MPC error if any
+    if (mpcTimeError) {
+        const errSpan = document.createElement('span');
+        errSpan.style.cssText = 'color: #dc3545; font-size: 0.75rem; margin-left: 0.5rem;';
+        errSpan.textContent = `[MPC: ${mpcTimeError}]`;
+        linksDiv.appendChild(errSpan);
+    }
 
     // Display coordinates info
     coordsDiv.innerHTML = `
