@@ -99,11 +99,11 @@
 
 {% block extra_css %}
 <style>
-    .container { max-width: 100%; padding: 0.5rem; }
+    .container { max-width: 100%; padding: 0.1rem; }
     .page-layout { display: grid; grid-template-columns: 400px 1fr; gap: 0.5rem; align-items: start; }
     .table-panel { min-width: 0; }
-    .table-panel .card { max-height: calc(100vh - 80px); display: flex; flex-direction: column; overflow: hidden; padding: 0.8rem; }
-    .viewer-panel .card { position: sticky; top: 0.5rem; padding: 0.8rem; }
+    .table-panel .card { max-height: calc(100vh - 80px); display: flex; flex-direction: column; overflow: hidden; padding: 1px 0.8rem; }
+    .viewer-panel .card { position: sticky; top: 0.5rem; padding: 1px 0.8rem; }
 
     .header-row { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; gap: 0.5rem; margin-bottom: 0.5rem; }
     .header-row h2 { font-size: 1.2rem; margin: 0; }
@@ -130,7 +130,7 @@
     .time-group { border: 1px solid #dee2e6; border-radius: 6px; padding: 0.4rem; }
     .time-group h4 { margin: 0 0 0.3rem 0; color: #495057; font-size: 0.85rem; }
     .fits-downloads { margin-bottom: 0.3rem; }
-    .fits-downloads a { display: inline-block; margin-right: 0.2rem; margin-bottom: 0.2rem; padding: 0.15rem 0.3rem; background: #007bff; color: #fff; border-radius: 3px; text-decoration: none; font-size: 0.65rem; }
+    .fits-downloads a { display: inline-block; margin-right: 0.25rem; margin-bottom: 0.25rem; padding: 0.2rem 0.4rem; background: #007bff; color: #fff; border-radius: 3px; text-decoration: none; font-size: 0.8rem; }
     .fits-downloads a:hover { background: #0056b3; }
     .image-container { position: relative; cursor: pointer; }
     .image-container img { width: 100%; height: auto; border-radius: 4px; background: #000; display: block; image-rendering: pixelated; }
@@ -145,8 +145,8 @@
     .coords-info { font-size: 0.75rem; color: #495057; white-space: nowrap; background: #e9ecef; padding: 0.25rem 0.5rem; border-radius: 3px; font-family: monospace; }
 
     .judge-right { display: flex; align-items: flex-start; gap: 0.5rem; flex: 1; }
-    .judge-buttons { display: flex; flex-direction: column; gap: 0.2rem; }
-    .btn-judge { padding: 0.2rem 0.6rem; border: none; border-radius: 3px; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: all 0.2s; white-space: nowrap; }
+    .judge-buttons { display: flex; flex-direction: column; gap: 0.3rem; }
+    .btn-judge { padding: 0.4rem 1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; font-weight: 600; transition: all 0.2s; white-space: nowrap; }
     .btn-exclude { background: #9e9e9e; color: #fff; }
     .btn-exclude:hover { background: #757575; }
     .btn-exclude.active { background: #616161; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
