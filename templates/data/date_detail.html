@@ -66,7 +66,10 @@
                 </div>
                 <div class="links-section" id="linksSection">
                     <h4>查询链接</h4>
-                    <div class="links" id="queryLinks"></div>
+                    <div class="links-container">
+                        <div class="links" id="queryLinks"></div>
+                        <div class="coords-info" id="coordsInfo"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -105,9 +108,14 @@
 
     .links-section { margin-top: 1rem; padding: 0.5rem; border: 1px solid #dee2e6; border-radius: 8px; background: #f8f9fa; }
     .links-section h4 { margin: 0 0 0.5rem 0; color: #495057; font-size: 0.9rem; }
-    .links { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .links-container { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+    .links { display: flex; flex-wrap: wrap; gap: 0.5rem; flex: 1; }
     .links a { display: inline-block; padding: 0.3rem 0.6rem; background: #28a745; color: #fff; border-radius: 4px; text-decoration: none; font-size: 0.8rem; }
     .links a:hover { background: #218838; }
+    .coords-info { font-size: 0.8rem; color: #495057; text-align: right; white-space: nowrap; background: #e9ecef; padding: 0.4rem 0.6rem; border-radius: 4px; }
+    .coords-info .coord-row { margin: 0.15rem 0; }
+    .coords-info .coord-label { color: #6c757d; margin-right: 0.3rem; }
+    .coords-info .coord-value { font-family: monospace; color: #212529; }
 </style>
 {% endblock %}
 
@@ -149,7 +157,9 @@ function showFiles(data) {
 
 function renderQueryLinks(ra, dec, ra_hms, dec_dms) {
     const linksDiv = document.getElementById('queryLinks');
+    const coordsDiv = document.getElementById('coordsInfo');
     linksDiv.innerHTML = '';
+    coordsDiv.innerHTML = '';
 
     if (!ra || !dec) {
         linksDiv.innerHTML = '<span style="color:#666;">暂无坐标信息</span>';
@@ -160,9 +170,34 @@ function renderQueryLinks(ra, dec, ra_hms, dec_dms) {
     const ps1Ra = ra.toFixed(3);
     const ps1Dec = dec >= 0 ? dec.toFixed(3) : dec.toFixed(3);
 
+    // Format for MPC (needs date and HMS/DMS format)
+    const dateStr = '{{ date }}';
+    const mpcYear = dateStr.substring(0, 4);
+    const mpcMonth = parseInt(dateStr.substring(4, 6));
+    const mpcDay = dateStr.substring(6, 8) + '.5';
+    // Convert RA from degrees to HMS format (HH MM SS.s)
+    const raHours = ra / 15;
+    const raH = Math.floor(raHours);
+    const raM = Math.floor((raHours - raH) * 60);
+    const raS = ((raHours - raH) * 60 - raM) * 60;
+    const mpcRa = `${String(raH).padStart(2, '0')}%20${String(raM).padStart(2, '0')}%20${raS.toFixed(1)}`;
+    // Convert DEC from degrees to DMS format (±DD MM SS.s)
+    const decSign = dec >= 0 ? '%2B' : '-';
+    const decAbs = Math.abs(dec);
+    const decD = Math.floor(decAbs);
+    const decM = Math.floor((decAbs - decD) * 60);
+    const decS = ((decAbs - decD) * 60 - decM) * 60;
+    const mpcDec = `${decSign}${String(decD).padStart(2, '0')}%20${String(decM).padStart(2, '0')}%20${decS.toFixed(2)}`;
+
+    // Format HMS/DMS for display
+    const decSignDisplay = dec >= 0 ? '+' : '-';
+    const raHmsDisplay = `${String(raH).padStart(2, '0')}h ${String(raM).padStart(2, '0')}m ${raS.toFixed(2)}s`;
+    const decDmsDisplay = `${decSignDisplay}${String(decD).padStart(2, '0')}° ${String(decM).padStart(2, '0')}' ${decS.toFixed(2)}"`;
+
     const links = [
         {name: 'Aladin', url: `https://aladin.u-strasbg.fr/AladinLite/?target=${ra}%20${dec}&fov=0.1&survey=P/DSS2/color`},
         {name: 'DLS', url: `https://www.legacysurvey.org/viewer/jpeg-cutout/?ra=${ra}&dec=${dec}&layer=ls-dr9&pixscale=0.5&bands=grz`},
+        {name: 'MPC', url: `https://data.minorplanetcenter.net/cgi-bin/mpcheck.cgi?year=${mpcYear}&month=${mpcMonth}&day=${mpcDay}&which=pos&ra=${mpcRa}&decl=${mpcDec}&TextArea=&limit=20&oc=N89&radius=10&sort=d&mot=h&tmot=s&pdes=u&needed=f&ps=n&type=p`},
         {name: 'PS1', url: `https://ps1images.stsci.edu/cgi-bin/ps1cutouts?pos=${ps1Ra}+${ps1Dec}&filter=color&filter=g&filter=r&filter=i&filter=z&filter=y&filetypes=stack&auxiliary=data&size=500&output_size=0&verbose=0&autoscale=99.500000&catlist=`},
         {name: 'Simbad', url: `http://simbad.u-strasbg.fr/simbad/sim-coo?Coord=${ra}%20${dec}&Radius.unit=arcsec&Radius=10`},
         {name: 'TNS', url: `https://www.wis-tns.org/search?ra=${ra}&decl=${dec}&radius=10&coords_unit=arcsec`},
@@ -177,6 +212,14 @@ function renderQueryLinks(ra, dec, ra_hms, dec_dms) {
         a.textContent = link.name;
         linksDiv.appendChild(a);
     });
+
+    // Display coordinates info
+    coordsDiv.innerHTML = `
+        <div class="coord-row"><span class="coord-label">RA:</span><span class="coord-value">${ra.toFixed(6)}°</span></div>
+        <div class="coord-row"><span class="coord-label">DEC:</span><span class="coord-value">${dec.toFixed(6)}°</span></div>
+        <div class="coord-row"><span class="coord-label">RA:</span><span class="coord-value">${raHmsDisplay}</span></div>
+        <div class="coord-row"><span class="coord-label">DEC:</span><span class="coord-value">${decDmsDisplay}</span></div>
+    `;
 }
 
 function renderGroup(side, files) {
