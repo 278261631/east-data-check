@@ -262,3 +262,140 @@ def get_status(request, date):
         'current_user': request.user.username
     })
 
+
+# File lock for Excel operations
+import threading
+excel_lock = threading.Lock()
+
+
+def get_or_create_judge_column(ws, headers, username):
+    """Get or create a judgment column for the user"""
+    col_name = f'judge_{username}'
+    if col_name in headers:
+        return headers.index(col_name) + 1, headers
+
+    # Create new column
+    new_col_idx = len(headers) + 1
+    ws.cell(row=1, column=new_col_idx, value=col_name)
+    headers.append(col_name)
+    return new_col_idx, headers
+
+
+def get_or_create_final_judge_column(ws, headers):
+    """Get or create the final judgment column"""
+    col_name = 'final_judge'
+    if col_name in headers:
+        return headers.index(col_name) + 1, headers
+
+    # Create new column at the end
+    new_col_idx = len(headers) + 1
+    ws.cell(row=1, column=new_col_idx, value=col_name)
+    headers.append(col_name)
+    return new_col_idx, headers
+
+
+@login_required
+@require_POST
+def submit_judgment(request, date, row_index):
+    """Submit a judgment for a row"""
+    data_root = Path(settings.DATA_ROOT)
+    data_file = settings.DATA_FILE
+    file_path = data_root / date / data_file
+
+    if not file_path.exists():
+        return JsonResponse({'error': 'File not found'}, status=404)
+
+    try:
+        data = json.loads(request.body)
+        judgment = data.get('judgment')  # 'exclude' or 'suspect'
+        username = request.user.username
+
+        if judgment not in ['exclude', 'suspect']:
+            return JsonResponse({'error': 'Invalid judgment'}, status=400)
+
+        with excel_lock:
+            wb = openpyxl.load_workbook(file_path)
+            ws = wb.active
+
+            # Get headers
+            headers = [cell.value for cell in ws[1]]
+
+            # Get or create user's judgment column
+            user_col, headers = get_or_create_judge_column(ws, headers, username)
+
+            # Get or create final judgment column
+            final_col, headers = get_or_create_final_judge_column(ws, headers)
+
+            # Write user's judgment
+            ws.cell(row=row_index + 1, column=user_col, value=judgment)
+
+            # Write final judgment
+            ws.cell(row=row_index + 1, column=final_col, value=judgment)
+
+            wb.save(file_path)
+            wb.close()
+
+        return JsonResponse({
+            'status': 'ok',
+            'judgment': judgment,
+            'user': username
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def get_judgments(request, date):
+    """Get all judgments for a date"""
+    data_root = Path(settings.DATA_ROOT)
+    data_file = settings.DATA_FILE
+    file_path = data_root / date / data_file
+
+    if not file_path.exists():
+        return JsonResponse({'error': 'File not found'}, status=404)
+
+    try:
+        wb = openpyxl.load_workbook(file_path, read_only=True)
+        ws = wb.active
+
+        headers = [cell.value for cell in ws[1]]
+
+        # Find judgment columns
+        judge_cols = {}
+        final_col = None
+        for idx, h in enumerate(headers):
+            if h and h.startswith('judge_'):
+                username = h[6:]  # Remove 'judge_' prefix
+                judge_cols[username] = idx
+            elif h == 'final_judge':
+                final_col = idx
+
+        # Collect judgments
+        judgments = {}
+        for i, row in enumerate(ws.iter_rows(min_row=2, values_only=True)):
+            row_idx = i + 1
+            row_judgments = {}
+
+            for username, col_idx in judge_cols.items():
+                if col_idx < len(row) and row[col_idx]:
+                    row_judgments[username] = row[col_idx]
+
+            final = None
+            if final_col is not None and final_col < len(row):
+                final = row[final_col]
+
+            if row_judgments or final:
+                judgments[row_idx] = {
+                    'users': row_judgments,
+                    'final': final
+                }
+
+        wb.close()
+
+        return JsonResponse({
+            'judgments': judgments,
+            'current_user': request.user.username
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
