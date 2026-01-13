@@ -12,6 +12,7 @@ urlpatterns = [
     path('<str:date>/status/', views.get_status, name='get_status'),
     path('<str:date>/status/update/', views.update_status, name='update_status'),
     path('<str:date>/row/<int:row_index>/judge/', views.submit_judgment, name='submit_judgment'),
+    path('<str:date>/row/<int:row_index>/remark/', views.submit_remark, name='submit_remark'),
     path('<str:date>/judgments/', views.get_judgments, name='get_judgments'),
 ]
 

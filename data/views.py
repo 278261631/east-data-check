@@ -294,6 +294,19 @@ def get_or_create_final_judge_column(ws, headers):
     return new_col_idx, headers
 
 
+def get_or_create_remark_column(ws, headers):
+    """Get or create the remark column"""
+    col_name = 'final_remark'
+    if col_name in headers:
+        return headers.index(col_name) + 1, headers
+
+    # Create new column at the end
+    new_col_idx = len(headers) + 1
+    ws.cell(row=1, column=new_col_idx, value=col_name)
+    headers.append(col_name)
+    return new_col_idx, headers
+
+
 @login_required
 @require_POST
 def submit_judgment(request, date, row_index):
@@ -360,15 +373,18 @@ def get_judgments(request, date):
 
         headers = [cell.value for cell in ws[1]]
 
-        # Find judgment columns
+        # Find judgment and remark columns
         judge_cols = {}
         final_col = None
+        remark_col = None
         for idx, h in enumerate(headers):
             if h and h.startswith('judge_'):
                 username = h[6:]  # Remove 'judge_' prefix
                 judge_cols[username] = idx
             elif h == 'final_judge':
                 final_col = idx
+            elif h == 'final_remark':
+                remark_col = idx
 
         # Collect judgments
         judgments = {}
@@ -384,10 +400,15 @@ def get_judgments(request, date):
             if final_col is not None and final_col < len(row):
                 final = row[final_col]
 
-            if row_judgments or final:
+            remark = None
+            if remark_col is not None and remark_col < len(row):
+                remark = row[remark_col]
+
+            if row_judgments or final or remark:
                 judgments[row_idx] = {
                     'users': row_judgments,
-                    'final': final
+                    'final': final,
+                    'remark': remark
                 }
 
         wb.close()
@@ -395,6 +416,45 @@ def get_judgments(request, date):
         return JsonResponse({
             'judgments': judgments,
             'current_user': request.user.username
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def submit_remark(request, date, row_index):
+    """Submit a remark for a row"""
+    data_root = Path(settings.DATA_ROOT)
+    data_file = settings.DATA_FILE
+    file_path = data_root / date / data_file
+
+    if not file_path.exists():
+        return JsonResponse({'error': 'File not found'}, status=404)
+
+    try:
+        data = json.loads(request.body)
+        remark = data.get('remark', '')
+
+        with excel_lock:
+            wb = openpyxl.load_workbook(file_path)
+            ws = wb.active
+
+            # Get headers
+            headers = [cell.value for cell in ws[1]]
+
+            # Get or create remark column
+            remark_col, headers = get_or_create_remark_column(ws, headers)
+
+            # Write remark
+            ws.cell(row=row_index + 1, column=remark_col, value=remark)
+
+            wb.save(file_path)
+            wb.close()
+
+        return JsonResponse({
+            'status': 'ok',
+            'remark': remark
         })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)

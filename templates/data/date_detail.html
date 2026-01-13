@@ -88,6 +88,10 @@
                                 <button class="btn-judge btn-suspect" id="btnSuspect" onclick="submitJudgment('suspect')">可疑</button>
                             </div>
                             <div class="judge-status" id="judgeStatus"></div>
+                            <div class="remark-section">
+                                <textarea id="remarkInput" class="remark-input" placeholder="备注..." rows="4"></textarea>
+                                <button class="btn-remark" onclick="submitRemark()">保存</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -148,7 +152,7 @@
     .coords-info .coord-label { color: #6c757d; margin-right: 0.3rem; }
     .coords-info .coord-value { font-family: monospace; color: #212529; }
 
-    .judge-section { min-width: 180px; padding: 0.5rem; background: #fff; border: 1px solid #dee2e6; border-radius: 8px; flex-shrink: 0; }
+    .judge-section { min-width: 460px; padding: 0.5rem; background: #fff; border: 1px solid #dee2e6; border-radius: 8px; flex-shrink: 0; }
     .judge-buttons { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
     .btn-judge { flex: 1; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s; }
     .btn-exclude { background: #9e9e9e; color: #fff; }
@@ -157,11 +161,17 @@
     .btn-suspect { background: #ff5722; color: #fff; }
     .btn-suspect:hover { background: #e64a19; }
     .btn-suspect.active { background: #d84315; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
-    .judge-status { font-size: 0.75rem; color: #666; }
+    .judge-status { font-size: 0.75rem; color: #666; margin-bottom: 0.5rem; }
     .judge-status .judge-item { margin: 0.2rem 0; }
     .judge-status .judge-user { font-weight: 600; }
     .judge-status .judge-exclude { color: #757575; }
     .judge-status .judge-suspect { color: #ff5722; }
+
+    .remark-section { display: flex; flex-direction: column; gap: 0.3rem; margin-top: 0.5rem; }
+    .remark-input { width: 100%; padding: 0.3rem 0.5rem; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.8rem; resize: vertical; font-family: inherit; }
+    .remark-input:focus { outline: none; border-color: #80bdff; box-shadow: 0 0 0 2px rgba(0,123,255,0.25); }
+    .btn-remark { padding: 0.3rem 0.6rem; background: #17a2b8; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; align-self: flex-end; }
+    .btn-remark:hover { background: #138496; }
 
     .data-table tbody tr.row-exclude { background: #f5f5f5; }
     .data-table tbody tr.row-suspect { background: #fff3e0; }
@@ -344,13 +354,19 @@ function updateJudgmentDisplay() {
     });
 }
 
-function updateJudgeStatus(rowIndex) {
+function updateJudgeStatus(rowIndex, forceUpdateRemark = false) {
     const statusDiv = document.getElementById('judgeStatus');
+    const remarkInput = document.getElementById('remarkInput');
     const data = judgmentsData[rowIndex];
 
     // Reset button states
     document.getElementById('btnExclude').classList.remove('active');
     document.getElementById('btnSuspect').classList.remove('active');
+
+    // Only reset remark if forced (row changed) or input not focused
+    if (forceUpdateRemark) {
+        remarkInput.value = '';
+    }
 
     if (!data) {
         statusDiv.innerHTML = '<span style="color:#999;">暂无判定</span>';
@@ -377,6 +393,11 @@ function updateJudgeStatus(rowIndex) {
         });
     }
     statusDiv.innerHTML = html || '<span style="color:#999;">暂无判定</span>';
+
+    // Set remark value only if forced or input not focused
+    if (forceUpdateRemark || document.activeElement !== remarkInput) {
+        remarkInput.value = data.remark || '';
+    }
 }
 
 function submitJudgment(judgment) {
@@ -404,6 +425,33 @@ function submitJudgment(judgment) {
     });
 }
 
+function submitRemark() {
+    if (!currentRow) {
+        alert('请先选择一行数据');
+        return;
+    }
+
+    const remark = document.getElementById('remarkInput').value;
+
+    fetch(`/east-data/${DATE}/row/${currentRow}/remark/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({remark: remark})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error: ' + data.error);
+            return;
+        }
+        // Refresh judgments
+        fetchJudgments();
+    });
+}
+
 function showFiles(data) {
     document.getElementById('viewerHint').style.display = 'none';
     document.getElementById('fileViewer').style.display = 'block';
@@ -413,7 +461,7 @@ function showFiles(data) {
     renderGroup('left', data.left);
     renderGroup('right', data.right);
     renderQueryLinks(data.ra_deg, data.dec_deg, data.ra_hms, data.dec_dms);
-    updateJudgeStatus(currentRow);
+    updateJudgeStatus(currentRow, true);  // Force update remark when row changes
 }
 
 function renderQueryLinks(ra, dec, ra_hms, dec_dms) {
