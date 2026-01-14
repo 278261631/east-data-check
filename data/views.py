@@ -333,10 +333,10 @@ def submit_judgment(request, date, row_index):
 
     try:
         data = json.loads(request.body)
-        judgment = data.get('judgment')  # 'exclude' or 'suspect'
+        judgment = data.get('judgment')  # 'exclude', 'suspect', or 'cancel'
         username = request.user.username
 
-        if judgment not in ['exclude', 'suspect']:
+        if judgment not in ['exclude', 'suspect', 'cancel']:
             return JsonResponse({'error': 'Invalid judgment'}, status=400)
 
         with excel_lock:
@@ -355,14 +355,20 @@ def submit_judgment(request, date, row_index):
             # Get or create final judgment by column
             final_by_col, headers = get_or_create_final_judge_by_column(ws, headers)
 
-            # Write user's judgment
-            ws.cell(row=row_index + 1, column=user_col, value=judgment)
-
-            # Write final judgment
-            ws.cell(row=row_index + 1, column=final_col, value=judgment)
-
-            # Write who made the final judgment
-            ws.cell(row=row_index + 1, column=final_by_col, value=username)
+            if judgment == 'cancel':
+                # Clear user's judgment (use empty string instead of None for openpyxl)
+                ws.cell(row=row_index + 1, column=user_col).value = ''
+                # Clear final judgment
+                ws.cell(row=row_index + 1, column=final_col).value = ''
+                # Clear who made the final judgment
+                ws.cell(row=row_index + 1, column=final_by_col).value = ''
+            else:
+                # Write user's judgment
+                ws.cell(row=row_index + 1, column=user_col, value=judgment)
+                # Write final judgment
+                ws.cell(row=row_index + 1, column=final_col, value=judgment)
+                # Write who made the final judgment
+                ws.cell(row=row_index + 1, column=final_by_col, value=username)
 
             wb.save(file_path)
             wb.close()
