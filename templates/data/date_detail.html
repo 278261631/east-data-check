@@ -169,10 +169,11 @@
     .data-table tbody tr.row-suspect { background: #fff3e0; }
     .data-table tbody tr.row-exclude.selected { background: #e0e0e0; }
     .data-table tbody tr.row-suspect.selected { background: #ffe0b2; }
-    .judge-cell { min-width: 50px; text-align: center; }
+    .judge-cell { min-width: 70px; text-align: center; }
     .judge-badge { display: inline-block; padding: 0.1rem 0.3rem; border-radius: 8px; font-size: 0.6rem; font-weight: 600; }
     .judge-badge.exclude { background: #9e9e9e; color: #fff; }
     .judge-badge.suspect { background: #ff5722; color: #fff; }
+    .judge-by { display: block; font-size: 0.55rem; color: #666; margin-top: 1px; }
 </style>
 {% endblock %}
 
@@ -338,6 +339,14 @@ function updateJudgmentDisplay() {
             badge.className = `judge-badge ${data.final}`;
             badge.textContent = data.final === 'exclude' ? '排除' : '可疑';
             cell.appendChild(badge);
+
+            // Show who made the final judgment
+            if (data.final_by) {
+                const bySpan = document.createElement('span');
+                bySpan.className = 'judge-by';
+                bySpan.textContent = data.final_by;
+                cell.appendChild(bySpan);
+            }
         }
 
         if (row && data.final) {

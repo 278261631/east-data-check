@@ -294,6 +294,19 @@ def get_or_create_final_judge_column(ws, headers):
     return new_col_idx, headers
 
 
+def get_or_create_final_judge_by_column(ws, headers):
+    """Get or create the final judgment by column (records who made the last judgment)"""
+    col_name = 'final_judge_by'
+    if col_name in headers:
+        return headers.index(col_name) + 1, headers
+
+    # Create new column at the end
+    new_col_idx = len(headers) + 1
+    ws.cell(row=1, column=new_col_idx, value=col_name)
+    headers.append(col_name)
+    return new_col_idx, headers
+
+
 def get_or_create_remark_column(ws, headers):
     """Get or create the remark column"""
     col_name = 'final_remark'
@@ -339,11 +352,17 @@ def submit_judgment(request, date, row_index):
             # Get or create final judgment column
             final_col, headers = get_or_create_final_judge_column(ws, headers)
 
+            # Get or create final judgment by column
+            final_by_col, headers = get_or_create_final_judge_by_column(ws, headers)
+
             # Write user's judgment
             ws.cell(row=row_index + 1, column=user_col, value=judgment)
 
             # Write final judgment
             ws.cell(row=row_index + 1, column=final_col, value=judgment)
+
+            # Write who made the final judgment
+            ws.cell(row=row_index + 1, column=final_by_col, value=username)
 
             wb.save(file_path)
             wb.close()
@@ -376,6 +395,7 @@ def get_judgments(request, date):
         # Find judgment and remark columns
         judge_cols = {}
         final_col = None
+        final_by_col = None
         remark_col = None
         for idx, h in enumerate(headers):
             if h and h.startswith('judge_'):
@@ -383,6 +403,8 @@ def get_judgments(request, date):
                 judge_cols[username] = idx
             elif h == 'final_judge':
                 final_col = idx
+            elif h == 'final_judge_by':
+                final_by_col = idx
             elif h == 'final_remark':
                 remark_col = idx
 
@@ -400,6 +422,10 @@ def get_judgments(request, date):
             if final_col is not None and final_col < len(row):
                 final = row[final_col]
 
+            final_by = None
+            if final_by_col is not None and final_by_col < len(row):
+                final_by = row[final_by_col]
+
             remark = None
             if remark_col is not None and remark_col < len(row):
                 remark = row[remark_col]
@@ -408,6 +434,7 @@ def get_judgments(request, date):
                 judgments[row_idx] = {
                     'users': row_judgments,
                     'final': final,
+                    'final_by': final_by,
                     'remark': remark
                 }
 
