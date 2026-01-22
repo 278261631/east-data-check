@@ -9,6 +9,7 @@ import re
 import openpyxl
 import time
 import json
+from .excel_manager import get_working_excel_path
 
 # In-memory storage for online users and their current row
 # Format: {date: {username: {'row': row_index, 'last_seen': timestamp}}}
@@ -80,33 +81,31 @@ def get_row_files(date, attribute, seq_num, fits_new, fits_old):
 
 @login_required
 def date_detail(request, date):
-    data_root = Path(settings.DATA_ROOT)
-    data_file = settings.DATA_FILE
-    file_path = data_root / date / data_file
-
     rows = []
     headers = []
     error = None
 
-    if file_path.exists():
-        try:
-            wb = openpyxl.load_workbook(file_path, read_only=True)
-            ws = wb.active
-            header_map = {}
-            for i, row in enumerate(ws.iter_rows(values_only=True)):
-                if i == 0:
-                    headers = list(row)
-                    header_map = {h: idx for idx, h in enumerate(headers)}
-                else:
-                    rows.append({
-                        'index': i,
-                        'data': list(row)
-                    })
-            wb.close()
-        except Exception as e:
-            error = str(e)
-    else:
-        error = f'File not found: {file_path}'
+    try:
+        # 获取工作Excel文件（仅复制一次）
+        file_path = get_working_excel_path(date)
+
+        wb = openpyxl.load_workbook(file_path, read_only=True)
+        ws = wb.active
+        header_map = {}
+        for i, row in enumerate(ws.iter_rows(values_only=True)):
+            if i == 0:
+                headers = list(row)
+                header_map = {h: idx for idx, h in enumerate(headers)}
+            else:
+                rows.append({
+                    'index': i,
+                    'data': list(row)
+                })
+        wb.close()
+    except FileNotFoundError as e:
+        error = f'File not found: {e}'
+    except Exception as e:
+        error = f'Error: {str(e)}'
 
     return render(request, 'data/date_detail.html', {
         'date': date,
@@ -119,14 +118,9 @@ def date_detail(request, date):
 @login_required
 def row_files(request, date, row_index):
     """API to get files for a specific row"""
-    data_root = Path(settings.DATA_ROOT)
-    data_file = settings.DATA_FILE
-    file_path = data_root / date / data_file
-
-    if not file_path.exists():
-        return JsonResponse({'error': 'File not found'}, status=404)
-
     try:
+        file_path = get_working_excel_path(date)
+
         wb = openpyxl.load_workbook(file_path, read_only=True)
         ws = wb.active
         headers = []
@@ -175,6 +169,8 @@ def row_files(request, date, row_index):
         result['dec_dms'] = str(dec_dms) if dec_dms else None
 
         return JsonResponse(result)
+    except FileNotFoundError as e:
+        return JsonResponse({'error': str(e)}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -324,12 +320,10 @@ def get_or_create_remark_column(ws, headers):
 @require_POST
 def submit_judgment(request, date, row_index):
     """Submit a judgment for a row"""
-    data_root = Path(settings.DATA_ROOT)
-    data_file = settings.DATA_FILE
-    file_path = data_root / date / data_file
-
-    if not file_path.exists():
-        return JsonResponse({'error': 'File not found'}, status=404)
+    try:
+        file_path = get_working_excel_path(date)
+    except FileNotFoundError as e:
+        return JsonResponse({'error': str(e)}, status=404)
 
     try:
         data = json.loads(request.body)
@@ -385,12 +379,10 @@ def submit_judgment(request, date, row_index):
 @login_required
 def get_judgments(request, date):
     """Get all judgments for a date"""
-    data_root = Path(settings.DATA_ROOT)
-    data_file = settings.DATA_FILE
-    file_path = data_root / date / data_file
-
-    if not file_path.exists():
-        return JsonResponse({'error': 'File not found'}, status=404)
+    try:
+        file_path = get_working_excel_path(date)
+    except FileNotFoundError as e:
+        return JsonResponse({'error': str(e)}, status=404)
 
     try:
         wb = openpyxl.load_workbook(file_path, read_only=True)
@@ -458,12 +450,10 @@ def get_judgments(request, date):
 @require_POST
 def submit_remark(request, date, row_index):
     """Submit a remark for a row"""
-    data_root = Path(settings.DATA_ROOT)
-    data_file = settings.DATA_FILE
-    file_path = data_root / date / data_file
-
-    if not file_path.exists():
-        return JsonResponse({'error': 'File not found'}, status=404)
+    try:
+        file_path = get_working_excel_path(date)
+    except FileNotFoundError as e:
+        return JsonResponse({'error': str(e)}, status=404)
 
     try:
         data = json.loads(request.body)
