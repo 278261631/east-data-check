@@ -68,26 +68,3 @@ def _find_existing_working_file(excel_dir, date):
 
     return None
 
-
-def reset_working_excel(date):
-    """
-    重置工作Excel文件 - 删除工作副本，从原始文件重新复制
-
-    Args:
-        date: 日期字符串 (YYYYMMDD)
-
-    Returns:
-        Path: 新创建的工作文件路径
-    """
-    data_root = Path(settings.DATA_ROOT)
-    data_file = settings.DATA_FILE
-    excel_dir = data_root / date / Path(data_file).parent
-
-    # 删除该日期的工作文件
-    pattern = f"candidate-final-{date}-*.xlsx"
-    for old_file in excel_dir.glob(pattern):
-        old_file.unlink()
-
-    # 从原始文件重新复制一次
-    return get_working_excel_path(date)
-
