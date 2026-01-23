@@ -19,9 +19,13 @@
             <div class="excel-filename">
                 <span class="filename-label">数据文件:</span>
                 <span class="filename-text">{{ excel_filename }}</span>
-                <button class="btn-sync" id="btnSyncRows" onclick="syncExcelRows()">
+                <button class="btn-sync" id="btnSyncRows" onclick="manualSyncExcelRows()">
                     <span id="syncBtnText">同步新行</span>
                 </button>
+                <span class="sync-countdown" id="syncCountdown">
+                    <span class="countdown-label">下次自动同步:</span>
+                    <span class="countdown-time" id="countdownTime">--:--</span>
+                </span>
             </div>
             {% endif %}
 
@@ -127,6 +131,9 @@
     .btn-sync:hover { background: #45a049; }
     .btn-sync:active { background: #3d8b40; }
     .btn-sync:disabled { background: #9e9e9e; cursor: not-allowed; }
+    .sync-countdown { display: flex; align-items: center; gap: 0.3rem; background: #e3f2fd; padding: 0.2rem 0.5rem; border-radius: 3px; }
+    .countdown-label { color: #1565c0; font-size: 0.7rem; font-weight: 600; }
+    .countdown-time { color: #0d47a1; font-size: 0.75rem; font-weight: 700; font-family: monospace; min-width: 45px; }
     .online-users { display: flex; align-items: center; gap: 0.3rem; background: #e8f5e9; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; }
     .online-label { color: #2e7d32; font-weight: 600; }
     #onlineUsersList { color: #1b5e20; }
@@ -204,8 +211,12 @@
 <script>
 const DATE = '{{ date }}';
 const CURRENT_USER = '{{ request.user.username }}';
+const AUTO_SYNC_INTERVAL = {{ auto_sync_interval }};  // seconds
 let currentRow = null;
 let statusInterval = null;
+let syncCountdownInterval = null;
+let syncTimeRemaining = AUTO_SYNC_INTERVAL;
+let isSyncing = false;
 
 document.querySelectorAll('.data-row').forEach(row => {
     row.addEventListener('click', function() {
@@ -661,16 +672,13 @@ function toggleImage(side) {
     }
 }
 
-function syncExcelRows() {
+// 同步Excel行的核心函数
+function syncExcelRows(isAutoSync = false) {
     const btn = document.getElementById('btnSyncRows');
     const btnText = document.getElementById('syncBtnText');
 
-    if (btn.disabled) return;
-
-    // 确认操作
-    if (!confirm('确定要从原始Excel同步新行到当前工作副本吗？')) {
-        return;
-    }
+    if (isSyncing) return;
+    isSyncing = true;
 
     // 禁用按钮并显示加载状态
     btn.disabled = true;
@@ -685,26 +693,104 @@ function syncExcelRows() {
     })
     .then(r => r.json())
     .then(data => {
+        isSyncing = false;
         btn.disabled = false;
         btnText.textContent = '同步新行';
 
         if (data.success) {
             if (data.added_rows > 0) {
-                alert(`同步成功！\n新增行数: ${data.added_rows}\n当前总行数: ${data.total_rows}\n\n页面将刷新以显示新数据。`);
+                const msg = isAutoSync
+                    ? `自动同步成功！\n新增行数: ${data.added_rows}\n当前总行数: ${data.total_rows}\n\n页面将刷新以显示新数据。`
+                    : `同步成功！\n新增行数: ${data.added_rows}\n当前总行数: ${data.total_rows}\n\n页面将刷新以显示新数据。`;
+                alert(msg);
                 location.reload();
             } else {
-                alert(data.message || '无新行需要同步');
+                if (!isAutoSync) {
+                    alert(data.message || '无新行需要同步');
+                }
+                // 重置倒计时
+                resetSyncCountdown();
             }
-        } else {
-            alert('同步失败：' + (data.message || '未知错误'));
+        }else {
+            if (!isAutoSync) {
+                alert('同步失败：' + (data.message || '未知错误'));
+            }
+            // 重置倒计时
+            resetSyncCountdown();
         }
     })
     .catch(error => {
+        isSyncing = false;
         btn.disabled = false;
         btnText.textContent = '同步新行';
-        alert('同步失败：' + error.message);
+        if (!isAutoSync) {
+            alert('同步失败：' + error.message);
+        }
+        // 重置倒计时
+        resetSyncCountdown();
     });
 }
+
+// 手动同步（需要确认）
+function manualSyncExcelRows() {
+    if (isSyncing) return;
+
+    // 确认操作
+    if (!confirm('确定要从原始Excel同步新行到当前工作副本吗？')) {
+        return;
+    }
+
+    // 停止倒计时
+    if (syncCountdownInterval) {
+        clearInterval(syncCountdownInterval);
+    }
+
+    syncExcelRows(false);
+}
+
+// 更新倒计时显示
+function updateCountdownDisplay() {
+    const countdownTime = document.getElementById('countdownTime');
+    if (!countdownTime) return;
+
+    const minutes = Math.floor(syncTimeRemaining / 60);
+    const seconds = syncTimeRemaining % 60;
+    countdownTime.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+// 开始倒计时
+function startSyncCountdown() {
+    syncTimeRemaining = AUTO_SYNC_INTERVAL;
+    updateCountdownDisplay();
+
+    syncCountdownInterval = setInterval(() => {
+        syncTimeRemaining--;
+
+        if (syncTimeRemaining <= 0) {
+            // 倒计时结束，执行自动同步
+            clearInterval(syncCountdownInterval);
+            syncExcelRows(true);
+        } else {
+            updateCountdownDisplay();
+        }
+    }, 1000);
+}
+
+// 重置倒计时
+function resetSyncCountdown() {
+    if (syncCountdownInterval) {
+        clearInterval(syncCountdownInterval);
+    }
+    startSyncCountdown();
+}
+
+// 页面加载时执行一次同步
+window.addEventListener('DOMContentLoaded', function() {
+    // 首次自动同步（静默执行）
+    syncExcelRows(true);
+    // 开始倒计时
+    startSyncCountdown();
+});
 
 </script>
 {% endblock %}

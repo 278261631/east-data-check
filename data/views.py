@@ -114,7 +114,8 @@ def date_detail(request, date):
         'headers': headers,
         'rows': rows,
         'error': error,
-        'excel_filename': excel_filename
+        'excel_filename': excel_filename,
+        'auto_sync_interval': settings.AUTO_SYNC_INTERVAL
     })
 
 

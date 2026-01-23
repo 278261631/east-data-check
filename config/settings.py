@@ -84,6 +84,9 @@ ADMIN_EMAIL = config('ADMIN_EMAIL', default='admin@localhost')
 DATA_ROOT = config('DATA_ROOT', default='')
 DATA_FILE = config('DATA_FILE', default='candidate-final/candidate-final.xlsx')
 
+# Auto sync config
+AUTO_SYNC_INTERVAL = config('AUTO_SYNC_INTERVAL', default=1800, cast=int)  # seconds
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
