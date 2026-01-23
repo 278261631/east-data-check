@@ -15,6 +15,13 @@
                 <a href="{% url 'data:date_list' %}" class="btn-back">返回列表</a>
             </div>
 
+            {% if excel_filename %}
+            <div class="excel-filename">
+                <span class="filename-label">数据文件:</span>
+                <span class="filename-text">{{ excel_filename }}</span>
+            </div>
+            {% endif %}
+
             {% if error %}
             <div class="alert alert-error mt-1">{{ error }}</div>
             {% else %}
@@ -110,6 +117,9 @@
 
     .header-row { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; gap: 0.5rem; margin-bottom: 0.5rem; }
     .header-row h2 { font-size: 1.2rem; margin: 0; }
+    .excel-filename { background: #fff3e0; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; margin-bottom: 0.5rem; border-left: 3px solid #ff9800; }
+    .filename-label { color: #e65100; font-weight: 600; margin-right: 0.3rem; }
+    .filename-text { color: #424242; font-family: monospace; word-break: break-all; }
     .online-users { display: flex; align-items: center; gap: 0.3rem; background: #e8f5e9; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; }
     .online-label { color: #2e7d32; font-weight: 600; }
     #onlineUsersList { color: #1b5e20; }

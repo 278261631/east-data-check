@@ -14,7 +14,7 @@ def get_working_excel_path(date):
         date: 日期字符串 (YYYYMMDD 格式)
 
     Returns:
-        Path: 工作Excel文件的完整路径 (candidate-final-YYYYMMDD-HHmmss.xlsx)
+        Path: 工作Excel文件的完整路径 (candidate-final-YYYYMMDD-YYYYMMDD-HHmmss.xlsx)
 
     Raises:
         FileNotFoundError: 原始Excel文件不存在
@@ -38,7 +38,7 @@ def get_working_excel_path(date):
         return existing_file
 
     # 生成新的工作文件名（带时间戳）
-    now = datetime.now().strftime('%H%M%S')
+    now = datetime.now().strftime('%Y%m%d-%H%M%S')
     working_filename = f"candidate-final-{date}-{now}.xlsx"
     working_path = excel_dir / working_filename
 

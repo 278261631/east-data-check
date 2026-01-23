@@ -84,10 +84,12 @@ def date_detail(request, date):
     rows = []
     headers = []
     error = None
+    excel_filename = None
 
     try:
         # 获取工作Excel文件（仅复制一次）
         file_path = get_working_excel_path(date)
+        excel_filename = file_path.name  # 获取文件名
 
         wb = openpyxl.load_workbook(file_path, read_only=True)
         ws = wb.active
@@ -111,7 +113,8 @@ def date_detail(request, date):
         'date': date,
         'headers': headers,
         'rows': rows,
-        'error': error
+        'error': error,
+        'excel_filename': excel_filename
     })
 
 
