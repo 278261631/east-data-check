@@ -16,6 +16,10 @@ from .excel_manager import get_working_excel_path, sync_new_rows_from_original
 online_users = {}
 ONLINE_TIMEOUT = 10  # seconds
 
+# In-memory storage for sync events
+# Format: {date: {'last_sync_time': timestamp, 'sync_count': int, 'added_rows': int}}
+sync_events = {}
+
 
 @login_required
 def date_list(request):
@@ -115,8 +119,10 @@ def date_detail(request, date):
         'rows': rows,
         'error': error,
         'excel_filename': excel_filename,
-        'auto_sync_interval': settings.AUTO_SYNC_INTERVAL
+        'auto_sync_interval': settings.AUTO_SYNC_INTERVAL,
+        'initial_row_count': len(rows)  # 传递当前行数给前端
     })
+
 
 
 @login_required
@@ -491,9 +497,55 @@ def submit_remark(request, date, row_index):
 @require_POST
 def sync_excel_rows(request, date):
     """同步原始Excel的新行到工作副本"""
+    # 获取客户端加载页面时的行数
+    client_row_count = int(request.POST.get('client_row_count', 0))
+
     result = sync_new_rows_from_original(date)
+
+    if result['success']:
+        # 检查当前总行数是否比客户端的多
+        current_total = result['total_rows']
+        result['should_refresh'] = current_total > client_row_count
+
+        if result['added_rows'] > 0:
+            # 记录同步事件，通知其他用户
+            if date not in sync_events:
+                sync_events[date] = {'sync_count': 0}
+
+            sync_events[date]['last_sync_time'] = time.time()
+            sync_events[date]['sync_count'] += 1
+            sync_events[date]['added_rows'] = result['added_rows']
+            sync_events[date]['synced_by'] = request.user.username
+            sync_events[date]['total_rows'] = current_total
 
     if result['success']:
         return JsonResponse(result)
     else:
         return JsonResponse(result, status=400)
+
+
+@login_required
+def check_sync_status(request, date):
+    """检查是否有新的同步事件（其他用户同步了新行）"""
+    client_last_check = float(request.GET.get('last_check', 0))
+    client_row_count = int(request.GET.get('client_row_count', 0))
+
+    if date in sync_events and 'last_sync_time' in sync_events[date]:
+        server_last_sync = sync_events[date]['last_sync_time']
+        server_total_rows = sync_events[date].get('total_rows', 0)
+
+        # 如果服务器端的同步时间晚于客户端的最后检查时间
+        # 或者服务器端的行数比客户端多
+        if server_last_sync > client_last_check or server_total_rows > client_row_count:
+            return JsonResponse({
+                'has_new_data': True,
+                'last_sync_time': server_last_sync,
+                'added_rows': sync_events[date].get('added_rows', 0),
+                'synced_by': sync_events[date].get('synced_by', 'unknown'),
+                'total_rows': server_total_rows
+            })
+
+    return JsonResponse({
+        'has_new_data': False,
+        'last_sync_time': time.time()
+    })

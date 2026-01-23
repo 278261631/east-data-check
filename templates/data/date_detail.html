@@ -212,11 +212,14 @@
 const DATE = '{{ date }}';
 const CURRENT_USER = '{{ request.user.username }}';
 const AUTO_SYNC_INTERVAL = {{ auto_sync_interval }};  // seconds
+const INITIAL_ROW_COUNT = {{ initial_row_count }};  // 页面加载时的行数
 let currentRow = null;
 let statusInterval = null;
 let syncCountdownInterval = null;
+let syncCheckInterval = null;
 let syncTimeRemaining = AUTO_SYNC_INTERVAL;
 let isSyncing = false;
+let lastSyncCheckTime = Date.now() / 1000;  // 记录上次检查同步状态的时间
 
 document.querySelectorAll('.data-row').forEach(row => {
     row.addEventListener('click', function() {
@@ -684,12 +687,16 @@ function syncExcelRows(isAutoSync = false) {
     btn.disabled = true;
     btnText.textContent = '同步中...';
 
+    // 创建FormData传递客户端行数
+    const formData = new FormData();
+    formData.append('client_row_count', INITIAL_ROW_COUNT);
+
     fetch(`/east-data/${DATE}/sync-rows/`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
             'X-CSRFToken': getCookie('csrftoken')
-        }
+        },
+        body: formData
     })
     .then(r => r.json())
     .then(data => {
@@ -698,20 +705,27 @@ function syncExcelRows(isAutoSync = false) {
         btnText.textContent = '同步新行';
 
         if (data.success) {
-            if (data.added_rows > 0) {
+            // 检查是否需要刷新（服务器端的行数比客户端多）
+            if (data.should_refresh) {
                 const msg = isAutoSync
-                    ? `自动同步成功！\n新增行数: ${data.added_rows}\n当前总行数: ${data.total_rows}\n\n页面将刷新以显示新数据。`
-                    : `同步成功！\n新增行数: ${data.added_rows}\n当前总行数: ${data.total_rows}\n\n页面将刷新以显示新数据。`;
+                    ? `检测到新数据！\n当前总行数: ${data.total_rows}\n页面加载时: ${INITIAL_ROW_COUNT}行\n\n页面将刷新以显示新数据。`
+                    : `同步完成！\n新增行数: ${data.added_rows}\n当前总行数: ${data.total_rows}\n\n页面将刷新以显示新数据。`;
+                alert(msg);
+                location.reload();
+            }else if (data.added_rows > 0) {
+                // 虽然有新行但客户端已经是最新的（可能是其他用户先同步了）
+                const msg = `同步成功！\n新增行数: ${data.added_rows}\n当前总行数: ${data.total_rows}\n\n页面将刷新以显示新数据。`;
                 alert(msg);
                 location.reload();
             } else {
+                // 没有新行
                 if (!isAutoSync) {
-                    alert(data.message || '无新行需要同步');
+                    alert(data.message || '无新行需要同步，当前数据已是最新');
                 }
                 // 重置倒计时
                 resetSyncCountdown();
             }
-        }else {
+        } else {
             if (!isAutoSync) {
                 alert('同步失败：' + (data.message || '未知错误'));
             }
@@ -784,12 +798,41 @@ function resetSyncCountdown() {
     startSyncCountdown();
 }
 
+// 检查是否有其他用户同步了新数据
+function checkSyncStatus() {
+    fetch(`/east-data/${DATE}/sync-status/?last_check=${lastSyncCheckTime}&client_row_count=${INITIAL_ROW_COUNT}`)
+        .then(r => r.json())
+        .then(data => {
+            lastSyncCheckTime = data.last_sync_time || lastSyncCheckTime;
+
+            if (data.has_new_data) {
+                // ��其他用户同步了新数据，提示并刷新页面
+                const syncedBy = data.synced_by || '其他用户';
+                const totalRows = data.total_rows || 0;
+
+                alert(`检测到新数据！\n同步者: ${syncedBy}\n服务器总行数: ${totalRows}\n您的页面: ${INITIAL_ROW_COUNT}行\n\n页面将自动刷新。`);
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('检查同步状态失败:', error);
+        });
+}
+
+// 开始定期检查同步状态
+function startSyncStatusCheck() {
+    // 每5秒检查一次是否有新数据
+    syncCheckInterval = setInterval(checkSyncStatus, 5000);
+}
+
 // 页面加载时执行一次同步
 window.addEventListener('DOMContentLoaded', function() {
     // 首次自动同步（静默执行）
     syncExcelRows(true);
     // 开始倒计时
     startSyncCountdown();
+    // 开始定期检查同步状态
+    startSyncStatusCheck();
 });
 
 </script>
