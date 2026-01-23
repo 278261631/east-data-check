@@ -14,5 +14,6 @@ urlpatterns = [
     path('<str:date>/row/<int:row_index>/judge/', views.submit_judgment, name='submit_judgment'),
     path('<str:date>/row/<int:row_index>/remark/', views.submit_remark, name='submit_remark'),
     path('<str:date>/judgments/', views.get_judgments, name='get_judgments'),
+    path('<str:date>/sync-rows/', views.sync_excel_rows, name='sync_excel_rows'),
 ]
 

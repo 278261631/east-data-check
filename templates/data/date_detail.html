@@ -19,6 +19,9 @@
             <div class="excel-filename">
                 <span class="filename-label">数据文件:</span>
                 <span class="filename-text">{{ excel_filename }}</span>
+                <button class="btn-sync" id="btnSyncRows" onclick="syncExcelRows()">
+                    <span id="syncBtnText">同步新行</span>
+                </button>
             </div>
             {% endif %}
 
@@ -117,9 +120,13 @@
 
     .header-row { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; gap: 0.5rem; margin-bottom: 0.5rem; }
     .header-row h2 { font-size: 1.2rem; margin: 0; }
-    .excel-filename { background: #fff3e0; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; margin-bottom: 0.5rem; border-left: 3px solid #ff9800; }
+    .excel-filename { background: #fff3e0; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; margin-bottom: 0.5rem; border-left: 3px solid #ff9800; display: flex; align-items: center; gap: 0.5rem; }
     .filename-label { color: #e65100; font-weight: 600; margin-right: 0.3rem; }
-    .filename-text { color: #424242; font-family: monospace; word-break: break-all; }
+    .filename-text { color: #424242; font-family: monospace; word-break: break-all; flex: 1; }
+    .btn-sync { background: #4caf50; color: #fff; padding: 0.25rem 0.6rem; border: none; border-radius: 3px; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: all 0.2s; white-space: nowrap; }
+    .btn-sync:hover { background: #45a049; }
+    .btn-sync:active { background: #3d8b40; }
+    .btn-sync:disabled { background: #9e9e9e; cursor: not-allowed; }
     .online-users { display: flex; align-items: center; gap: 0.3rem; background: #e8f5e9; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; }
     .online-label { color: #2e7d32; font-weight: 600; }
     #onlineUsersList { color: #1b5e20; }
@@ -653,6 +660,52 @@ function toggleImage(side) {
         label.textContent = 'NEW';
     }
 }
+
+function syncExcelRows() {
+    const btn = document.getElementById('btnSyncRows');
+    const btnText = document.getElementById('syncBtnText');
+
+    if (btn.disabled) return;
+
+    // 确认操作
+    if (!confirm('确定要从原始Excel同步新行到当前工作副本吗？')) {
+        return;
+    }
+
+    // 禁用按钮并显示加载状态
+    btn.disabled = true;
+    btnText.textContent = '同步中...';
+
+    fetch(`/east-data/${DATE}/sync-rows/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btnText.textContent = '同步新行';
+
+        if (data.success) {
+            if (data.added_rows > 0) {
+                alert(`同步成功！\n新增行数: ${data.added_rows}\n当前总行数: ${data.total_rows}\n\n页面将刷新以显示新数据。`);
+                location.reload();
+            } else {
+                alert(data.message || '无新行需要同步');
+            }
+        } else {
+            alert('同步失败：' + (data.message || '未知错误'));
+        }
+    })
+    .catch(error => {
+        btn.disabled = false;
+        btnText.textContent = '同步新行';
+        alert('同步失败：' + error.message);
+    });
+}
+
 </script>
 {% endblock %}
 

@@ -9,7 +9,7 @@ import re
 import openpyxl
 import time
 import json
-from .excel_manager import get_working_excel_path
+from .excel_manager import get_working_excel_path, sync_new_rows_from_original
 
 # In-memory storage for online users and their current row
 # Format: {date: {username: {'row': row_index, 'last_seen': timestamp}}}
@@ -485,3 +485,14 @@ def submit_remark(request, date, row_index):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+
+@login_required
+@require_POST
+def sync_excel_rows(request, date):
+    """同步原始Excel的新行到工作副本"""
+    result = sync_new_rows_from_original(date)
+
+    if result['success']:
+        return JsonResponse(result)
+    else:
+        return JsonResponse(result, status=400)
