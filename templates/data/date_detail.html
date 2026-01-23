@@ -2,6 +2,24 @@
 
 {% block title %}{{ date }} - East Data Check{% endblock %}
 
+{% block navbar_center %}
+{% if excel_filename %}
+<div class="navbar-excel-info">
+    <div class="navbar-filename">
+        <span class="navbar-filename-label">数据文件:</span>
+        <span class="navbar-filename-text">{{ excel_filename }}</span>
+    </div>
+    <button class="navbar-btn-sync" id="btnSyncRows" onclick="manualSyncExcelRows()">
+        <span id="syncBtnText">同步新行</span>
+    </button>
+    <span class="navbar-sync-countdown" id="syncCountdown">
+        <span class="navbar-countdown-label">下次自动同步:</span>
+        <span class="navbar-countdown-time" id="countdownTime">--:--</span>
+    </span>
+</div>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <div class="page-layout">
     <div class="table-panel">
@@ -14,20 +32,6 @@
                 </div>
                 <a href="{% url 'data:date_list' %}" class="btn-back">返回列表</a>
             </div>
-
-            {% if excel_filename %}
-            <div class="excel-filename">
-                <span class="filename-label">数据文件:</span>
-                <span class="filename-text">{{ excel_filename }}</span>
-                <button class="btn-sync" id="btnSyncRows" onclick="manualSyncExcelRows()">
-                    <span id="syncBtnText">同步新行</span>
-                </button>
-                <span class="sync-countdown" id="syncCountdown">
-                    <span class="countdown-label">下次自动同步:</span>
-                    <span class="countdown-time" id="countdownTime">--:--</span>
-                </span>
-            </div>
-            {% endif %}
 
             {% if error %}
             <div class="alert alert-error mt-1">{{ error }}</div>
@@ -116,25 +120,99 @@
 
 {% block extra_css %}
 <style>
+    /* Navbar中的Excel信息和同步控制 */
+    .navbar-excel-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .navbar-filename {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #fff3e0;
+        padding: 0.4rem 0.8rem;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        border-left: 3px solid #ff9800;
+    }
+
+    .navbar-filename-label {
+        color: #e65100;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .navbar-filename-text {
+        color: #424242;
+        font-family: monospace;
+        max-width: 400px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .navbar-btn-sync {
+        background: #4caf50;
+        color: #fff;
+        padding: 0.4rem 1rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+    .navbar-btn-sync:hover {
+        background: #45a049;
+    }
+
+    .navbar-btn-sync:active {
+        background: #3d8b40;
+    }
+
+    .navbar-btn-sync:disabled {
+        background: #9e9e9e;
+        cursor: not-allowed;
+    }
+
+    .navbar-sync-countdown {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: #e3f2fd;
+        padding: 0.4rem 0.8rem;
+        border-radius: 4px;
+        white-space: nowrap;
+    }
+
+    .navbar-countdown-label {
+        color: #1565c0;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .navbar-countdown-time {
+        color: #0d47a1;
+        font-size: 0.9rem;
+        font-weight: 700;
+        font-family: monospace;
+        min-width: 50px;
+    }
+
     .container { max-width: 100%; padding: 0.1rem; }
     .page-layout { display: grid; grid-template-columns: 400px 1fr; gap: 0.5rem; align-items: start; }
     .table-panel { min-width: 0; }
     .table-panel .card { max-height: calc(100vh - 80px); display: flex; flex-direction: column; overflow: hidden; padding: 1px 0.8rem; }
     .viewer-panel .card { position: sticky; top: 0.5rem; padding: 1px 0.8rem; }
 
-    .header-row { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .header-row { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; gap: 0.8rem; margin-bottom: 0.3rem; flex-wrap: wrap; }
     .header-row h2 { font-size: 1.2rem; margin: 0; }
-    .excel-filename { background: #fff3e0; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; margin-bottom: 0.5rem; border-left: 3px solid #ff9800; display: flex; align-items: center; gap: 0.5rem; }
-    .filename-label { color: #e65100; font-weight: 600; margin-right: 0.3rem; }
-    .filename-text { color: #424242; font-family: monospace; word-break: break-all; flex: 1; }
-    .btn-sync { background: #4caf50; color: #fff; padding: 0.25rem 0.6rem; border: none; border-radius: 3px; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: all 0.2s; white-space: nowrap; }
-    .btn-sync:hover { background: #45a049; }
-    .btn-sync:active { background: #3d8b40; }
-    .btn-sync:disabled { background: #9e9e9e; cursor: not-allowed; }
-    .sync-countdown { display: flex; align-items: center; gap: 0.3rem; background: #e3f2fd; padding: 0.2rem 0.5rem; border-radius: 3px; }
-    .countdown-label { color: #1565c0; font-size: 0.7rem; font-weight: 600; }
-    .countdown-time { color: #0d47a1; font-size: 0.75rem; font-weight: 700; font-family: monospace; min-width: 45px; }
-    .online-users { display: flex; align-items: center; gap: 0.3rem; background: #e8f5e9; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; }
+
+    .online-users { display: flex; align-items: center; gap: 0.3rem; background: #e8f5e9; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; white-space: nowrap; }
     .online-label { color: #2e7d32; font-weight: 600; }
     #onlineUsersList { color: #1b5e20; }
     .online-user { display: inline-block; background: #4caf50; color: #fff; padding: 0.1rem 0.4rem; border-radius: 10px; margin: 0 0.1rem; font-size: 0.7rem; }

@@ -9,10 +9,11 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; min-height: 100vh; }
-        .navbar { background: #fff; padding: 0.4rem 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
-        .navbar .logo { display: flex; align-items: center; gap: 6px; text-decoration: none; color: #333; font-weight: bold; font-size: 1rem; }
+        .navbar { background: #fff; padding: 0.4rem 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+        .navbar .logo { display: flex; align-items: center; gap: 6px; text-decoration: none; color: #333; font-weight: bold; font-size: 1rem; flex-shrink: 0; }
         .navbar .logo img { height: 28px; }
-        .navbar .nav-links { display: flex; gap: 0.5rem; align-items: center; }
+        .navbar .nav-center { flex: 1; display: flex; justify-content: center; align-items: center; }
+        .navbar .nav-links { display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0; }
         .navbar .nav-links a { text-decoration: none; color: #666; padding: 0.3rem 0.6rem; border-radius: 4px; transition: all 0.3s; font-size: 0.9rem; }
         .navbar .nav-links a:hover { background: #f0f0f0; color: #333; }
         .navbar .nav-links .btn { background: #007bff; color: #fff; }
@@ -41,6 +42,9 @@
             <img src="{% static 'images/logo.png' %}" alt="Logo">
             <span>East Data Check</span>
         </a>
+        <div class="nav-center">
+            {% block navbar_center %}{% endblock %}
+        </div>
         <div class="nav-links">
             {% if user.is_authenticated %}
                 <span>{{ user.username }}</span>
